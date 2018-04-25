@@ -132,7 +132,7 @@
   (send *ri* :wait-interpolation)
   (send *ri* :angle-vector *roll-3-pos* 3000)
   (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-2-pos* 2000)
+  (send *ri* :angle-vector *roll-4-pos* 200)
 
   (pitch-yaw-stable pitch-valid yaw-valid)
   )
