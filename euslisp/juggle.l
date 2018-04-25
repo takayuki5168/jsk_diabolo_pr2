@@ -147,7 +147,7 @@
 (defun pitch-yaw-stable (&optional (pitch-valid t) (yaw-valid t))
   (setq *control-diff* 0)
   ;;(setq *max-diff* 220) ;;TODO
-  (setq *max-diff* 150)  
+  (setq *max-diff* 200)  
   (setq *min-diff* 0)
   
   (do-until-key
@@ -156,7 +156,7 @@
    
    (progn ;; pitch
      ;; P制御
-     (setq *control-diff* (* *diabolo-pitch* 10)) ;; TODO params
+     (setq *control-diff* (* *diabolo-pitch* 20)) ;; TODO params
 
      ;; 最大最小制限
      (if (> *control-diff* *max-diff*)
