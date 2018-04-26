@@ -23,13 +23,21 @@ def listener():
     rospy.Subscriber("diabolo/yaw", Float64, callbackForYaw)
 
     t = np.zeros(10)
-    y = np.zeros(10)
+    pitch = np.zeros(10)
+    yaw = np.zeros(10)
 
     plt.ion()
     plt.figure()
-    li, = plt.plot(t, y)
+
+    plt.subplot(2,1,1)
+    li_pitch, = plt.plot(t, pitch)
     plt.xlabel("time[s]")
     plt.ylabel("pitch[degree]")
+
+    plt.subplot(2,1,2)
+    li_yaw, = plt.plot(t, yaw)
+    plt.xlabel("time[s]")
+    plt.ylabel("yaw[degree]")
 
     now_time = 0;
     while True:
@@ -38,13 +46,24 @@ def listener():
 
         t = np.append(t, now_time)
         t = np.delete(t, 0)
-        y = np.append(y, now_time)
-        y = np.delete(y, 0)
+        pitch = np.append(pitch, now_time)
+        pitch = np.delete(pitch, 0)
+        yaw = np.append(yaw, -now_time)
+        yaw = np.delete(yaw, 0)
 
-        li.set_xdata(t)
-        li.set_ydata(y)           
+        li_pitch.set_xdata(t)
+        li_pitch.set_ydata(pitch)           
+        li_yaw.set_xdata(t)
+        li_yaw.set_ydata(yaw)           
+
+        plt.subplot(2,1,1)
         plt.xlim(min(t), max(t))
-        plt.ylim(min(y), max(y))
+        plt.ylim(min(pitch), max(pitch))
+
+        plt.subplot(2,1,2)
+        plt.xlim(min(t), max(t))
+        plt.ylim(min(yaw), max(yaw))
+
         plt.draw()
 
         now_time += 1

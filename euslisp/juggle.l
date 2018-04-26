@@ -109,8 +109,13 @@
   (send *ri* :angle-vector *roll-2-pos* 1500)
   )
 
+
 (defun idle ()
-  (send *ri* :angle-vector-sequence (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos*) (list 1000))  
+  (setq avs (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos*))
+  (dolist (av avs)
+    (send *ri* :angle-vector av 1000)
+    (send *ri* :wait-interpolation-smooth 300)
+    )
   )
 
 ;; roll to idle
@@ -147,7 +152,7 @@
 (defun pitch-yaw-stable (&optional (pitch-valid t) (yaw-valid t))
   (setq *control-diff* 0)
   ;;(setq *max-diff* 220) ;;TODO
-  (setq *max-diff* 200)  
+  (setq *max-diff* 150)  
   (setq *min-diff* 0)
   
   (do-until-key
@@ -171,7 +176,7 @@
 
      ;; 実機での動作
      (if (eq pitch-valid t)
-	 (send *ri* :angle-vector (control *control-diff*) 2000)
+	 (send *ri* :angle-vector (control *control-diff*) 5000)
        )
      )
 
@@ -188,11 +193,6 @@
      (if (< *diabolo-yaw* -20)
 	 (setq *diabolo-yaw* -20))
      
-     ;;(if (> *diabolo-yaw* 0)
-     ;;    (setq *diabolo-yaw* 5))
-     ;;(if (< *diabolo-yaw* 0)
-     ;;    (setq *diabolo-yaw* -5))
-     
      (setq *radius* (/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m]
      (setq *radius* (* *radius* 0.7)) ;; TODO
      (setq *diabolo-yaw-rad* (/ (* *diabolo-yaw* 3.14) 180))
@@ -206,13 +206,13 @@
      (if (eq yaw-valid t)
 	 (progn
 	   (progn
-	     (setq *diff-theta* *diabolo-yaw*)
-	     (send *ri* :go-pos-unsafe *diff-x* *diff-y* *diff-theta*)
+	     ;;(setq *diff-theta* *diabolo-yaw*)
+	     ;;(send *ri* :go-pos-unsafe *diff-x* *diff-y* *diff-theta*)
 	     )
 	   (progn
-	     ;;(setq *diff-theta* *diabolo-yaw-rad*)
-	     ;;(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))
-	     ;;(send *ac* :send-goal *goal*)
+	     (setq *diff-theta* *diabolo-yaw-rad*)
+	     (setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))
+	     (send *ac* :send-goal *goal*)
 	     )
 	   )
        )
@@ -223,7 +223,14 @@
   (send *pr2* :larm :inverse-kinematics *default-left-cube*)   
   (setq *default-pos* (send *pr2* :angle-vector))
   (send *ri* :angle-vector *default-pos* 5000)
+
+  (setq *goal* (send *ri* :move-trajectory 0 0 0 10000))
+  (send *ac* :send-goal *goal*)
   )
+
+;;(defun idle ()
+;;  (send *ri* :angle-vector-sequence (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos*) (list 1000))  
+;;  )
 
 ;;(defun idle-infinite ()
 ;;  (send *ri* :angle-vector-sequence
