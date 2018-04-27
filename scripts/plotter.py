@@ -8,14 +8,19 @@ import signal
 import sys
 import math
 
+now_pitch = 0
+now_yaw = 0
+
 def sigIntHandler(signal, fram):
     sys.exit(0)
 
 def callbackForPitch(data):
-    rospy.loginfo(rospy.get_caller_id()+"I heard %s",data.data)
+    now_pitch = data.data
+    #rospy.loginfo(rospy.get_caller_id()+"I heard %s",data.data)
     
 def callbackForYaw(data):
-    rospy.loginfo(rospy.get_caller_id()+"I heard %s",data.data)
+    now_yaw = data.data
+    #rospy.loginfo(rospy.get_caller_id()+"I heard %s",data.data)
 
 def listener():
     rospy.init_node('listener', anonymous=True)
@@ -25,44 +30,50 @@ def listener():
     t = np.zeros(10)
     pitch = np.zeros(10)
     yaw = np.zeros(10)
+    zero = np.zeros(10)
 
     plt.ion()
     plt.figure()
 
     plt.subplot(2,1,1)
     li_pitch, = plt.plot(t, pitch)
+    li_pitch_zero, = plt.plot(t, zero)
     plt.xlabel("time[s]")
     plt.ylabel("pitch[degree]")
 
     plt.subplot(2,1,2)
     li_yaw, = plt.plot(t, yaw)
+    li_yaw_zero, = plt.plot(t, zero)
     plt.xlabel("time[s]")
     plt.ylabel("yaw[degree]")
 
     now_time = 0;
     while True:
         #rospy.spinOnce()
-        print("po")
-
         t = np.append(t, now_time)
         t = np.delete(t, 0)
-        pitch = np.append(pitch, now_time)
+        pitch = np.append(pitch, math.sin(now_time))
         pitch = np.delete(pitch, 0)
-        yaw = np.append(yaw, -now_time)
+        yaw = np.append(yaw, math.cos(now_time))
         yaw = np.delete(yaw, 0)
 
         li_pitch.set_xdata(t)
         li_pitch.set_ydata(pitch)           
+        li_pitch_zero.set_xdata(t)
+        li_pitch_zero.set_ydata(zero)
+
         li_yaw.set_xdata(t)
         li_yaw.set_ydata(yaw)           
+        li_yaw_zero.set_xdata(t)
+        li_yaw_zero.set_ydata(zero)
 
         plt.subplot(2,1,1)
         plt.xlim(min(t), max(t))
-        plt.ylim(min(pitch), max(pitch))
+        plt.ylim(min(min(pitch), min(zero)), max(max(zero), max(pitch)))
 
         plt.subplot(2,1,2)
         plt.xlim(min(t), max(t))
-        plt.ylim(min(yaw), max(yaw))
+        plt.ylim(min(min(zero), min(yaw)), max(max(zero), max(yaw)))
 
         plt.draw()
 

@@ -275,7 +275,6 @@
   ;;  )
   
   (setq *control-diff* 0)
-  ;;(setq *max-diff* 220) ;;TODO
   (setq *max-diff* 150)  
   (setq *min-diff* 0)
   
