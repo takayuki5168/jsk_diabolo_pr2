@@ -129,7 +129,7 @@
     )
   
   (setq *control-x-diff* 0)
-  (setq *max-x-diff* 150)  
+  (setq *max-x-diff* 100) ;; TODO  
   (setq *min-x-diff* 0)
   (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
   (setq *right-z-diff* 100)  
@@ -140,7 +140,7 @@
    
    (progn ;; pitch
      ;; P制御
-     (setq *control-x-diff* (* *diabolo-pitch* 20)) ;; TODO params
+     (setq *control-x-diff* (* *diabolo-pitch* 10)) ;; TODO params
 
      ;; 最大最小制限
      (if (> *control-x-diff* *max-x-diff*)
@@ -212,62 +212,3 @@
     )
   
   )
-
-;;(defun idle ()
-;;  (setq avs (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos*))
-;;  (dolist (av avs)
-;;    (send *ri* :angle-vector av 1000)
-;;    (send *ri* :wait-interpolation-smooth 300)
-;;    )
-;;  )
-
-
-;;(defun jump ()
-;;  (send *ri* :angle-vector *jump-1-pos*)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *jump-2-pos* 1000)  
-;;  )
-
-;;(defun jump-interpolation ()
-;;  (send *ri* :angle-vector *jump-1-pos*)
-;;  (send *ri* :wait-interpolation)
-;;  (dotimes (i 10)
-;;    (send *ri* :angle-vector (midpoint (* 0.1 (+ i 1)) *jump-1-pos* *jump-2-pos*) 500))
-;;  )
-
-;; roll-stable
-;;(defun roll-stable (&optional (pitch-valid t) (yaw-valid t))
-;;  (send *ri* :angle-vector *roll-1-pos* 5000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-2-pos* 5000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-3-pos* 3000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-4-pos* 200)
-
-;;  (pitch-yaw-stable pitch-valid yaw-valid)
-;;  )
-
-;;(defun roll ()
-;;  (send *ri* :angle-vector *roll-1-pos* 5000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-2-pos* 5000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-3-pos* 3000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-4-pos* 1000)
-;;  )
-
-;; roll to idle
-;;(defun roll-idle ()
-;;  (send *ri* :angle-vector *roll-1-pos* 5000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-2-pos* 5000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-3-pos* 3000)
-;;  (send *ri* :wait-interpolation)
-;;  (send *ri* :angle-vector *roll-4-pos* 1200)
-;;  (send *ri* :wait-interpolation-smooth 400)  
-;;  (send *ri* :angle-vector-sequence (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos*) (list 800))  
-;;  )
-
