@@ -81,26 +81,12 @@
     (send *pr2* :larm :inverse-kinematics *idle-left-up-cube*)   
     (setq *idle-2-pos* (send *pr2* :angle-vector))
     )
-
-;;  (progn ;; jump
-;;    (setq *jump-start-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 1000)))
-;;    (send *pr2* :rarm :inverse-kinematics *jump-start-right-cube*)  
-;;    (setq *jump-start-left-cube* (make-cube 100 100 100 :pos (float-vector 700 150 1000)))
-;;    (send *pr2* :larm :inverse-kinematics *jump-start-left-cube*)    
-;;    (setq *jump-1-pos* (send *pr2* :angle-vector))
-;;
-;;    (setq *jump-end-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -600 1000)))
-;;    (send *pr2* :rarm :inverse-kinematics *jump-end-right-cube*)
-;;    (setq *jump-end-left-cube* (make-cube 100 100 100 :pos (float-vector 700 600 1000)))
-;;    (send *pr2* :larm :inverse-kinematics *jump-end-left-cube*)   
-;;    (setq *jump-2-pos* (send *pr2* :angle-vector))
-;;    )
   )
 
 (defun control (right-x-diff) ;; |right-x-diff| < *max-x-dif*(= 220)
   ;; set z
   (setq *just-now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-  (if (> (- *just-now-time* *now-time*) 700)
+  (if (> (- *just-now-time* *now-time*) 700) ;; 700
       (progn
 	(setq *now-time* *just-now-time*)
 	(setq *right-z-diff* (- *right-z-diff*))
@@ -132,7 +118,7 @@
   (setq *max-x-diff* 100) ;; TODO  
   (setq *min-x-diff* 0)
   (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-  (setq *right-z-diff* 100)  
+  (setq *right-z-diff* 150)  
   
   (do-until-key
    ;; subscribe
