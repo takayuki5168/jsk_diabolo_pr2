@@ -22,8 +22,8 @@ class PitchYawPlotter:
 
     def initNode(self):
         rospy.init_node('listener', anonymous=True)
-        rospy.Subscriber("diabolo/pitch", Float64, self.callbackForPitch)
-        rospy.Subscriber("diabolo/yaw", Float64, self.callbackForYaw)
+        rospy.Subscriber("sample_pcl/diabolo/pitch", Float64, self.callbackForPitch)
+        rospy.Subscriber("sample_pcl/diabolo/yaw", Float64, self.callbackForYaw)
 
     def initGraph(self):
         self.t = np.zeros(10)
@@ -35,12 +35,14 @@ class PitchYawPlotter:
         plt.figure()
     
         plt.subplot(2,1,1)
+        plt.title("Pitch")
         self.li_pitch, = plt.plot(self.t, self.pitch)
         self.li_pitch_zero, = plt.plot(self.t, self.zero)
         plt.xlabel("time[s]")
         plt.ylabel("pitch[degree]")
     
         plt.subplot(2,1,2)
+        plt.title("Yaw")
         self.li_yaw, = plt.plot(self.t, self.yaw)
         self.li_yaw_zero, = plt.plot(self.t, self.zero)
         plt.xlabel("time[s]")
@@ -50,20 +52,17 @@ class PitchYawPlotter:
 
     def callbackForPitch(self, data):
         self.now_pitch = data.data
-        #rospy.loginfo(rospy.get_caller_id()+"I heard %s",data.data)
         
     def callbackForYaw(self, data):
         self.now_yaw = data.data
-        #rospy.loginfo(rospy.get_caller_id()+"I heard %s",data.data)
     
     def plot(self):
         while True:
-            #rospy.spinOnce()
             self.t = np.append(self.t, self.now_time) 
             self.t = np.delete(self.t, 0)
-            self.pitch = np.append(self.pitch, math.sin(self.now_time)) # self.now_pitch
+            self.pitch = np.append(self.pitch, self.now_pitch)
             self.pitch = np.delete(self.pitch, 0)
-            self.yaw = np.append(self.yaw, math.cos(self.now_time)) # self.now_yaw
+            self.yaw = np.append(self.yaw, self.now_yaw)
             self.yaw = np.delete(self.yaw, 0)
     
             self.li_pitch.set_xdata(self.t)
@@ -78,11 +77,17 @@ class PitchYawPlotter:
     
             plt.subplot(2,1,1)
             plt.xlim(min(self.t), max(self.t))
-            plt.ylim(min(min(self.pitch), min(self.zero)), max(max(self.zero), max(self.pitch)))
+            pitch_min = min(min(self.zero), min(self.pitch))
+            pitch_max = max(max(self.zero), max(self.pitch))
+            #plt.ylim((pitch_max * (-1) + pitch_min * 6) / 5, (pitch_max * 6 + pitch_min * (-1)) / 5)
+            plt.ylim(-80, 80)
     
             plt.subplot(2,1,2)
             plt.xlim(min(self.t), max(self.t))
-            plt.ylim(min(min(self.zero), min(self.yaw)), max(max(self.zero), max(self.yaw)))
+            yaw_min = min(min(self.zero), min(self.yaw))
+            yaw_max = max(max(self.zero), max(self.yaw))
+            #plt.ylim((yaw_max * (-1) + yaw_min * 6) / 5, (yaw_max * 6 + yaw_min * (-1)) / 5)
+            plt.ylim(-80, 80)
     
             plt.draw()
     

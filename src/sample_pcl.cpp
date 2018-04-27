@@ -126,7 +126,7 @@ public:
         pub_pitch_.publish(msg_pitch);
 
         std::cout << "[yaw] " << yaw << " [pitch] " << pitch << std::endl;
-        std::cout << max_x_temae << " " << max_z_temae << " " << max_x_oku << " " << max_z_oku << " " << pitch << std::endl;
+        //std::cout << max_x_temae << " " << max_z_temae << " " << max_x_oku << " " << max_z_oku << " " << pitch << std::endl;
     }
 
     ros::NodeHandle nh_, pnh_;
