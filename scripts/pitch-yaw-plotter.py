@@ -26,10 +26,10 @@ class PitchYawPlotter:
         rospy.Subscriber("sample_pcl/diabolo/yaw", Float64, self.callbackForYaw)
 
     def initGraph(self):
-        self.t = np.zeros(10)
-        self.pitch = np.zeros(10)
-        self.yaw = np.zeros(10)
-        self.zero = np.zeros(10)
+        self.t = np.zeros(20)
+        self.pitch = np.zeros(20)
+        self.yaw = np.zeros(20)
+        self.zero = np.zeros(20)
 
         plt.ion()
         plt.figure()
