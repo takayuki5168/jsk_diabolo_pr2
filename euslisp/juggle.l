@@ -7,9 +7,12 @@
 ;; ディアボロの傾きを計算
 ;; rosrun pr2_juggle sample_pcl ~input:=/tf_transform_cloud/output
 
+;; sudo service chrony restart
 
 ;; HSIフィルタを使いたい時
 ;; rosrun jsk_pcl_ros hsi_color_filter ~input:=/kinect_head/depth_registered/quater/throttled/points
+
+
 
 (defun init ()
   (setq *diabolo-pitch* 0)
