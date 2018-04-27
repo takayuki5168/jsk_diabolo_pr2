@@ -12,8 +12,6 @@
 ;; HSIフィルタを使いたい時
 ;; rosrun jsk_pcl_ros hsi_color_filter ~input:=/kinect_head/depth_registered/quater/throttled/points
 
-
-
 (defun init ()
   (setq *diabolo-pitch* 0)
   (setq *diabolo-yaw* 0)  
@@ -62,9 +60,9 @@
     (send *pr2* :larm :inverse-kinematics *roll-3-left-cube* :rotation-axis :z)    
     (setq *roll-3-pos* (send *pr2* :angle-vector))
     
-    (setq *roll-4-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 900)))
+    (setq *roll-4-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 850)))
     (send *pr2* :rarm :inverse-kinematics *roll-4-right-cube*)  
-    (setq *roll-4-left-cube* (make-cube 100 100 100 :pos (float-vector 700 150 900)))
+    (setq *roll-4-left-cube* (make-cube 100 100 100 :pos (float-vector 700 150 850)))
     (send *pr2* :larm :inverse-kinematics *roll-4-left-cube*)    
     (setq *roll-4-pos* (send *pr2* :angle-vector))
     
@@ -84,79 +82,57 @@
     (setq *idle-2-pos* (send *pr2* :angle-vector))
     )
 
-  (progn ;; jump
-    (setq *jump-start-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 1000)))
-    (send *pr2* :rarm :inverse-kinematics *jump-start-right-cube*)  
-    (setq *jump-start-left-cube* (make-cube 100 100 100 :pos (float-vector 700 150 1000)))
-    (send *pr2* :larm :inverse-kinematics *jump-start-left-cube*)    
-    (setq *jump-1-pos* (send *pr2* :angle-vector))
+;;  (progn ;; jump
+;;    (setq *jump-start-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 1000)))
+;;    (send *pr2* :rarm :inverse-kinematics *jump-start-right-cube*)  
+;;    (setq *jump-start-left-cube* (make-cube 100 100 100 :pos (float-vector 700 150 1000)))
+;;    (send *pr2* :larm :inverse-kinematics *jump-start-left-cube*)    
+;;    (setq *jump-1-pos* (send *pr2* :angle-vector))
+;;
+;;    (setq *jump-end-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -600 1000)))
+;;    (send *pr2* :rarm :inverse-kinematics *jump-end-right-cube*)
+;;    (setq *jump-end-left-cube* (make-cube 100 100 100 :pos (float-vector 700 600 1000)))
+;;    (send *pr2* :larm :inverse-kinematics *jump-end-left-cube*)   
+;;    (setq *jump-2-pos* (send *pr2* :angle-vector))
+;;    )
+  )
 
-    (setq *jump-end-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -600 1000)))
-    (send *pr2* :rarm :inverse-kinematics *jump-end-right-cube*)
-    (setq *jump-end-left-cube* (make-cube 100 100 100 :pos (float-vector 700 600 1000)))
-    (send *pr2* :larm :inverse-kinematics *jump-end-left-cube*)   
-    (setq *jump-2-pos* (send *pr2* :angle-vector))
+(defun control (right-x-diff) ;; |right-x-diff| < *max-x-dif*(= 220)
+  ;; set z
+  (setq *just-now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
+  (if (> (- *just-now-time* *now-time*) 700)
+      (progn
+	(setq *now-time* *just-now-time*)
+	(setq *right-z-diff* (- *right-z-diff*))
+	)
     )
   
-  (objects (list *pr2*))
-  )
-
-
-(defun roll ()
-  (send *ri* :angle-vector *roll-1-pos* 5000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-2-pos* 5000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-3-pos* 3000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-2-pos* 1500)
-  )
-
-
-(defun idle ()
-  (setq avs (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos*))
-  (dolist (av avs)
-    (send *ri* :angle-vector av 1000)
-    (send *ri* :wait-interpolation-smooth 300)
-    )
-  )
-
-;; roll to idle
-(defun roll-idle ()
-  (send *ri* :angle-vector *roll-1-pos* 5000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-2-pos* 5000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-3-pos* 3000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector-sequence (list *roll-4-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos*) (list 800))  
-  )
-
-;; roll-stable
-(defun roll-stable (&optional (pitch-valid t) (yaw-valid t))
-  (send *ri* :angle-vector *roll-1-pos* 5000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-2-pos* 5000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-3-pos* 3000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *roll-4-pos* 200)
-
-  (pitch-yaw-stable pitch-valid yaw-valid)
-  )
-
-(defun control (right-diff) ;; |right-diff| < *max-dif*(= 220)
-  (setq *default-right-diff-cube* (send (send *default-right-cube* :copy-coords) :translate (float-vector right-diff 0 0)))
-  (setq *default-left-diff-cube* (send (send *default-left-cube* :copy-coords) :translate (float-vector (- right-diff) 0 0)))
+  (setq *default-right-diff-cube* (send (send *default-right-cube* :copy-coords) :translate (float-vector right-x-diff 0 *right-z-diff*)))
+  (setq *default-left-diff-cube* (send (send *default-left-cube* :copy-coords) :translate (float-vector (- right-x-diff) 0 (- *right-z-diff*))))
   (send *pr2* :rarm :inverse-kinematics *default-right-diff-cube*)
   (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
   )
 
-(defun pitch-yaw-stable (&optional (pitch-valid t) (yaw-valid t))
-  (setq *control-diff* 0)
-  ;;(setq *max-diff* 220) ;;TODO
-  (setq *max-diff* 200)  ;; 150
-  (setq *min-diff* 0)
+(defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t))
+  (if (eq roll-valid t)
+      (progn
+	(send *ri* :angle-vector *roll-1-pos* 5000)
+	(send *ri* :wait-interpolation)
+	(send *ri* :angle-vector *roll-2-pos* 5000)
+	(send *ri* :wait-interpolation)
+	(send *ri* :angle-vector *roll-3-pos* 2000)
+	(send *ri* :wait-interpolation)
+	;;(unix::usleep 3000)	
+	(send *ri* :angle-vector *roll-4-pos* 1200)
+	(send *ri* :wait-interpolation-smooth 400)
+	)
+    )
+  
+  (setq *control-x-diff* 0)
+  (setq *max-x-diff* 150)  
+  (setq *min-x-diff* 0)
+  (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
+  (setq *right-z-diff* 100)  
   
   (do-until-key
    ;; subscribe
@@ -164,23 +140,24 @@
    
    (progn ;; pitch
      ;; P制御
-     (setq *control-diff* (* *diabolo-pitch* 20)) ;; TODO params
+     (setq *control-x-diff* (* *diabolo-pitch* 20)) ;; TODO params
 
      ;; 最大最小制限
-     (if (> *control-diff* *max-diff*)
-	 (setq *control-diff* *max-diff*))
-     (if (< *control-diff* (- *max-diff*))
-	 (setq *control-diff* (- *max-diff*)))
+     (if (> *control-x-diff* *max-x-diff*)
+	 (setq *control-x-diff* *max-x-diff*))
+     (if (< *control-x-diff* (- *max-x-diff*))
+	 (setq *control-x-diff* (- *max-x-diff*)))
 
      ;; 不感帯
-     (if (< *control-diff* *min-diff*)
-	 (if (> *control-diff* (- *min-diff*))
-	     (setq *control-diff* 0)))
+     (if (< *control-x-diff* *min-x-diff*)
+	 (if (> *control-x-diff* (- *min-x-diff*))
+	     (setq *control-x-diff* 0)))
 
      ;; 実機での動作
-     (if (eq pitch-valid t)
-	 (send *ri* :angle-vector (control *control-diff*) 5000)
+     (if (eq pitch-valid nil)
+	 (setq *control-x-diff* 0)
        )
+     (send *ri* :angle-vector (control *control-x-diff*) 800)
      )
 
    (progn ;; yaw
@@ -197,7 +174,7 @@
 	 (setq *diabolo-yaw* -20))
      
      (setq *radius* (/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m]
-     (setq *radius* (* *radius* 0.7)) ;; TODO
+     (setq *radius* (* *radius* 1.0)) ;; TODO
      (setq *diabolo-yaw-rad* (/ (* *diabolo-yaw* 3.14) 180))
      
      ;;(setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
@@ -228,24 +205,22 @@
   (send *ri* :angle-vector *default-pos* 5000)
 
   (if (eq yaw-valid t)
+      (progn
       (setq *goal* (send *ri* :move-trajectory 0 0 0 10000))
-    (send *ac* :send-goal *goal*)
+      (send *ac* :send-goal *goal*)
+      )
     )
+  
   )
 
 ;;(defun idle ()
-;;  (send *ri* :angle-vector-sequence (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos*) (list 1000))  
+;;  (setq avs (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos*))
+;;  (dolist (av avs)
+;;    (send *ri* :angle-vector av 1000)
+;;    (send *ri* :wait-interpolation-smooth 300)
+;;    )
 ;;  )
 
-;;(defun idle-infinite ()
-;;  (send *ri* :angle-vector-sequence
-;;	(list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos*
-;;	      *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos*
-;;	      *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos*
-;;	      *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos*)
-;;	(list 1000)
-;;	)  
-;;  )
 
 ;;(defun jump ()
 ;;  (send *ri* :angle-vector *jump-1-pos*)
@@ -260,96 +235,39 @@
 ;;    (send *ri* :angle-vector (midpoint (* 0.1 (+ i 1)) *jump-1-pos* *jump-2-pos*) 500))
 ;;  )
 
-(defun control-idle (right-diff) ;; |right-diff| < *max-dif*(= 220)
-  (setq *default-right-diff-cube* (send (send *default-right-cube* :copy-coords) :translate (float-vector right-diff 0 0)))
-  (setq *default-left-diff-cube* (send (send *default-left-cube* :copy-coords) :translate (float-vector (- right-diff) 0 0)))
-  (send *pr2* :rarm :inverse-kinematics *default-right-diff-cube*)
-  (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
-  )
+;; roll-stable
+;;(defun roll-stable (&optional (pitch-valid t) (yaw-valid t))
+;;  (send *ri* :angle-vector *roll-1-pos* 5000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-2-pos* 5000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-3-pos* 3000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-4-pos* 200)
 
-(defun pitch-yaw-stable-idle (&optional (pitch-valid t) (yaw-valid t))
-  (setq *avs* (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos*))
-  ;;(dolist (av *avs*)
-  ;;  (send *ri* :angle-vector av 1000)
-  ;;  (send *ri* :wait-interpolation-smooth 300)
-  ;;  )
-  
-  (setq *control-diff* 0)
-  (setq *max-diff* 150)  
-  (setq *min-diff* 0)
-  
-  (do-until-key
-   ;; subscribe
-   (ros::spin-once)
-   
-   (progn ;; pitch
-     ;; P制御
-     (setq *control-diff* (* *diabolo-pitch* 20)) ;; TODO params
+;;  (pitch-yaw-stable pitch-valid yaw-valid)
+;;  )
 
-     ;; 最大最小制限
-     (if (> *control-diff* *max-diff*)
-	 (setq *control-diff* *max-diff*))
-     (if (< *control-diff* (- *max-diff*))
-	 (setq *control-diff* (- *max-diff*)))
+;;(defun roll ()
+;;  (send *ri* :angle-vector *roll-1-pos* 5000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-2-pos* 5000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-3-pos* 3000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-4-pos* 1000)
+;;  )
 
-     ;; 不感帯
-     (if (< *control-diff* *min-diff*)
-	 (if (> *control-diff* (- *min-diff*))
-	     (setq *control-diff* 0)))
+;; roll to idle
+;;(defun roll-idle ()
+;;  (send *ri* :angle-vector *roll-1-pos* 5000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-2-pos* 5000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-3-pos* 3000)
+;;  (send *ri* :wait-interpolation)
+;;  (send *ri* :angle-vector *roll-4-pos* 1200)
+;;  (send *ri* :wait-interpolation-smooth 400)  
+;;  (send *ri* :angle-vector-sequence (list *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos* *idle-2-pos* *idle-1-pos*) (list 800))  
+;;  )
 
-     ;; 実機での動作
-     (if (eq pitch-valid t)
-	 (send *ri* :angle-vector (control-idle *control-diff*) 5000)
-       )
-     )
-
-   (progn ;; yaw
-     ;; 外れ値除去
-     (if (> *diabolo-yaw* 60)
-	 (setq *diabolo-yaw* 0))
-     (if (< *diabolo-yaw* -60)
-	 (setq *diabolo-yaw* 0))
-     
-     ;; 最大角度制限
-     (if (> *diabolo-yaw* 20)
-	 (setq *diabolo-yaw* 20))
-     (if (< *diabolo-yaw* -20)
-	 (setq *diabolo-yaw* -20))
-     
-     (setq *radius* (/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m]
-     (setq *radius* (* *radius* 0.7)) ;; TODO
-     (setq *diabolo-yaw-rad* (/ (* *diabolo-yaw* 3.14) 180))
-     
-     ;;(setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
-     ;;(setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
-     (setq *diff-x* 0)
-     (setq *diff-y* 0)
-
-     ;; 実機での動作
-     (if (eq yaw-valid t)
-	 (progn
-	   (progn
-	     ;;(setq *diff-theta* *diabolo-yaw*)
-	     ;;(send *ri* :go-pos-unsafe *diff-x* *diff-y* *diff-theta*)
-	     )
-	   (progn
-	     (setq *diff-theta* *diabolo-yaw-rad*)
-	     (setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))
-	     (send *ac* :send-goal *goal*)
-	     )
-	   )
-       )
-     )
-
-   )
-  (send *pr2* :rarm :inverse-kinematics *default-right-cube*)  
-  (send *pr2* :larm :inverse-kinematics *default-left-cube*)   
-  (setq *default-pos* (send *pr2* :angle-vector))
-  (send *ri* :angle-vector *default-pos* 5000)
-
-  (if (eq yaw-valid t)
-      (setq *goal* (send *ri* :move-trajectory 0 0 0 10000))
-    (send *ac* :send-goal *goal*)
-    )
-  
-  )
