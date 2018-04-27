@@ -163,14 +163,14 @@
      (if (< *diabolo-yaw* -20)
 	 (setq *diabolo-yaw* -20))
      
-     (setq *radius* (/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m]
-     (setq *radius* (* *radius* 1.0)) ;; TODO
+     (setq *radius* 0.7) ;;(/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m] ;; TODO
+     (setq *radius* (* *radius* 0.8)) ;; TODO
      (setq *diabolo-yaw-rad* (/ (* *diabolo-yaw* 3.14) 180))
      
-     ;;(setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
-     ;;(setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
-     (setq *diff-x* 0)
-     (setq *diff-y* 0)
+     (setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
+     (setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
+     ;;(setq *diff-x* 0)
+     ;;(setq *diff-y* 0)
 
      ;; 実機での動作
      (if (eq yaw-valid t)
