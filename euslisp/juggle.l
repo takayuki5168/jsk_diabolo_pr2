@@ -86,7 +86,7 @@
 (defun control (right-x-diff) ;; |right-x-diff| < *max-x-dif*(= 220)
   ;; set z
   (setq *just-now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-  (if (> (- *just-now-time* *now-time*) 700) ;; 700
+  (if (> (- *just-now-time* *now-time*) 1300) ;; 700
       (progn
 	(setq *now-time* *just-now-time*)
 	(setq *right-z-diff* (- *right-z-diff*))
@@ -147,7 +147,7 @@
      (if (eq pitch-valid nil)
 	 (setq *control-x-diff* 0)
        )
-     (send *ri* :angle-vector (control *control-x-diff*) 800)
+     (send *ri* :angle-vector (control *control-x-diff*) 1500)
      )
 
    (progn ;; yaw
@@ -167,10 +167,10 @@
      (setq *radius* (* *radius* 1.0)) ;; TODO
      (setq *diabolo-yaw-rad* (/ (* *diabolo-yaw* 3.14) 180))
      
-     (setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
-     (setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
-     ;;(setq *diff-x* 0)
-     ;;(setq *diff-y* 0)
+     ;;(setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
+     ;;(setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
+     (setq *diff-x* 0)
+     (setq *diff-y* 0)
 
      ;; 実機での動作
      (if (eq yaw-valid t)
