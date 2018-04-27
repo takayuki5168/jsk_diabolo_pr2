@@ -36,3 +36,6 @@ include_directories(
 
 add_executable(sample_pcl src/sample_pcl.cpp)
 target_link_libraries(sample_pcl ${catkin_LIBRARIES})
+
+add_executable(diabolo_marker src/diabolo_marker.cpp)
+target_link_libraries(diabolo_marker ${catkin_LIBRARIES})

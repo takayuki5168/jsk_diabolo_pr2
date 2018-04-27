@@ -50,11 +50,11 @@ def listener():
     now_time = 0;
     while True:
         #rospy.spinOnce()
-        t = np.append(t, now_time)
+        t = np.append(t, now_time) 
         t = np.delete(t, 0)
-        pitch = np.append(pitch, math.sin(now_time))
+        pitch = np.append(pitch, math.sin(now_time)) # now_pitch
         pitch = np.delete(pitch, 0)
-        yaw = np.append(yaw, math.cos(now_time))
+        yaw = np.append(yaw, math.cos(now_time)) # now_yaw
         yaw = np.delete(yaw, 0)
 
         li_pitch.set_xdata(t)
