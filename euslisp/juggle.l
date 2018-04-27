@@ -93,8 +93,12 @@
 	)
     )
   
-  (setq *default-right-diff-cube* (send (send *default-right-cube* :copy-coords) :translate (float-vector right-x-diff 0 *right-z-diff*)))
-  (setq *default-left-diff-cube* (send (send *default-left-cube* :copy-coords) :translate (float-vector (- right-x-diff) 0 (- *right-z-diff*))))
+  (setq *default-right-diff-cube* (send (send *default-right-cube* :copy-coords) :translate (float-vector right-x-diff 0 *right-z-diff*))) ;; TODO y-diff
+  (setq *default-left-diff-cube* (send (send *default-left-cube* :copy-coords) :translate (float-vector (- right-x-diff) 0 (- *right-z-diff*)))) ;; TODO y-diff
+
+  (send *default-right-diff-cube* :rotate 0.2 :x)
+  (send *default-left-diff-cube* :rotate -0.2 :x)  
+  
   (send *pr2* :rarm :inverse-kinematics *default-right-diff-cube*)
   (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
   )
@@ -108,7 +112,7 @@
 	(send *ri* :wait-interpolation)
 	(send *ri* :angle-vector *roll-3-pos* 2000)
 	(send *ri* :wait-interpolation)
-	;;(unix::usleep 3000)	
+        (unix::usleep 3000)	
 	(send *ri* :angle-vector *roll-4-pos* 1200)
 	(send *ri* :wait-interpolation-smooth 400)
 	)
@@ -163,10 +167,10 @@
      (setq *radius* (* *radius* 1.0)) ;; TODO
      (setq *diabolo-yaw-rad* (/ (* *diabolo-yaw* 3.14) 180))
      
-     ;;(setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
-     ;;(setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
-     (setq *diff-x* 0)
-     (setq *diff-y* 0)
+     (setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
+     (setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
+     ;;(setq *diff-x* 0)
+     ;;(setq *diff-y* 0)
 
      ;; 実機での動作
      (if (eq yaw-valid t)
