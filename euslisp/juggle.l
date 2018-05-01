@@ -1,11 +1,16 @@
 ;; rosrun
 
+;; 30FPS出るpointsをpublish
+;; roslaunch relay_kinect.launch
+
 ;; Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;; rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head/depth_registered/quater/throttled/points _target_frame_id:=base_footprint
-;; (rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head/depth_registered/points _target_frame_id:=base_footprint)
+;; rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint
 
 ;; ディアボロの傾きを計算
 ;; rosrun pr2_juggle sample_pcl ~input:=/tf_transform_cloud/output
+
+;; システム同定のためのロガー
+;; python logger.py
 
 ;; sudo service chrony restart
 
@@ -13,6 +18,8 @@
 ;; rosrun jsk_pcl_ros hsi_color_filter ~input:=/kinect_head/depth_registered/quater/throttled/points
 
 (defun init ()
+  (send *ri* :angle-vector (send *pr2* :reset-pose))
+  
   (setq *diabolo-pitch* 0)
   (setq *diabolo-yaw* 0)  
   
@@ -30,10 +37,14 @@
   
   (send *ri* :start-grasp)
   (send *pr2* :head-neck-p :joint-angle 50)
+
+  (solve-ik)
   
   (objects (list *pr2*))
+  )
 
-  (progn  ;; default 500~900
+(defun solve-ik ()
+  (progn ;; default 500~900
     (setq *default-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -120 1050)))
     (send *pr2* :rarm :inverse-kinematics *default-right-cube*)  
     (setq *default-left-cube* (make-cube 100 100 100 :pos (float-vector 700 120 1050)))
@@ -41,6 +52,20 @@
     (setq *default-pos* (send *pr2* :angle-vector))
     )
 
+  (progn  ;; idle
+    (setq *idle-right-up-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 1150)))
+    (send *pr2* :rarm :inverse-kinematics *idle-right-up-cube*)  
+    (setq *idle-left-down-cube* (make-cube 100 100 100 :pos (float-vector 700 150 950)))
+    (send *pr2* :larm :inverse-kinematics *idle-left-down-cube*)    
+    (setq *idle-1-pos* (send *pr2* :angle-vector))
+    
+    (setq *idle-right-down-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 950)))
+    (send *pr2* :rarm :inverse-kinematics *idle-right-down-cube*)
+    (setq *idle-left-up-cube* (make-cube 100 100 100 :pos (float-vector 700 150 1150)))
+    (send *pr2* :larm :inverse-kinematics *idle-left-up-cube*)   
+    (setq *idle-2-pos* (send *pr2* :angle-vector))
+    )
+  
   (progn ;; roll
     (setq *roll-1-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -50 1050)))
     (send *pr2* :rarm :inverse-kinematics *roll-1-right-cube*)
@@ -65,21 +90,6 @@
     (setq *roll-4-left-cube* (make-cube 100 100 100 :pos (float-vector 700 150 850)))
     (send *pr2* :larm :inverse-kinematics *roll-4-left-cube*)    
     (setq *roll-4-pos* (send *pr2* :angle-vector))
-    
-    )
-
-  (progn  ;; idle
-    (setq *idle-right-up-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 1150)))
-    (send *pr2* :rarm :inverse-kinematics *idle-right-up-cube*)  
-    (setq *idle-left-down-cube* (make-cube 100 100 100 :pos (float-vector 700 150 950)))
-    (send *pr2* :larm :inverse-kinematics *idle-left-down-cube*)    
-    (setq *idle-1-pos* (send *pr2* :angle-vector))
-    
-    (setq *idle-right-down-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 950)))
-    (send *pr2* :rarm :inverse-kinematics *idle-right-down-cube*)
-    (setq *idle-left-up-cube* (make-cube 100 100 100 :pos (float-vector 700 150 1150)))
-    (send *pr2* :larm :inverse-kinematics *idle-left-up-cube*)   
-    (setq *idle-2-pos* (send *pr2* :angle-vector))
     )
   )
 
@@ -110,11 +120,11 @@
 	(send *ri* :wait-interpolation)
 	(send *ri* :angle-vector *roll-2-pos* 5000)
 	(send *ri* :wait-interpolation)
-	(send *ri* :angle-vector *roll-3-pos* 2000)
+	(send *ri* :angle-vector *roll-3-pos* 3000)
 	(send *ri* :wait-interpolation)
-        (unix::usleep 3000)	
+        (unix::usleep 3000)
 	(send *ri* :angle-vector *roll-4-pos* 1200)
-	(send *ri* :wait-interpolation-smooth 400)
+	(send *ri* :wait-interpolation-smooth 800)
 	)
     )
   
@@ -189,6 +199,7 @@
      )
 
    )
+  
   (send *pr2* :rarm :inverse-kinematics *default-right-cube*)  
   (send *pr2* :larm :inverse-kinematics *default-left-cube*)   
   (setq *default-pos* (send *pr2* :angle-vector))
