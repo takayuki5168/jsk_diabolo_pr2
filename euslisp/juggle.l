@@ -18,8 +18,6 @@
 ;; rosrun jsk_pcl_ros hsi_color_filter ~input:=/kinect_head/depth_registered/quater/throttled/points
 
 (defun init ()
-  (send *ri* :angle-vector (send *pr2* :reset-pose))
-  
   (setq *diabolo-pitch* 0)
   (setq *diabolo-yaw* 0)  
   
@@ -32,7 +30,8 @@
   
   (load "package://pr2eus/pr2-interface.l")
   (pr2-init)
-
+  
+  (send *ri* :angle-vector (send *pr2* :reset-pose))
   (setq *ac* (pr2-interface-move-base-trajectory-action *ri*))
   
   (send *ri* :start-grasp)
