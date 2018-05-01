@@ -4,14 +4,12 @@ from nav_msgs.msg import Odometry
 from time import sleep
 from std_msgs.msg import Float64
 
-
 class Logger:
     def __init__(self):
         rospy.init_node("logger")
         self.tfl = tf2_ros.BufferClient("/tf2_buffer_server")
 
         self.tfl.wait_for_server()
-        sleep(1)
         
         self.state_pitch = 0
         self.state_yaw = 0
