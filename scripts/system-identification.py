@@ -16,7 +16,7 @@ input_arm = []
 input_base = []
 state_pitch = []
 state_yaw = []
-with open("../log/log-by-loggerpy2.log", "r") as f:
+with open("../log/log-by-loggerpy4.log", "r") as f:
     for l in f.readlines():
         val = l.split(' ')
 
@@ -56,8 +56,8 @@ print A
 
 
 # predict
-file_pitch = open('fitting_pitch.log', 'w')
-file_yaw = open('fitting_yaw.log', 'w')
+file_pitch = open('../log/fitting_pitch.log', 'w')
+file_yaw = open('../log/fitting_yaw.log', 'w')
 
 for i in range(DATA_NUM - PAST_NUM): # 0-16
     predicted_Y = A * X[0:VAR_NUM, i:i + 1]
