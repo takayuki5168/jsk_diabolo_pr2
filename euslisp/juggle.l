@@ -176,6 +176,13 @@
      (setq *radius* (* *radius* 0.8)) ;; TODO
      (setq *diabolo-yaw-rad* (/ (* *diabolo-yaw* 3.14) 180))
      
+     ;; TODO
+     ;;(if (> *diabolo-yaw* 0)
+     ;; (setq *diabolo-yaw-rad* 2))
+     ;;(if (< *diabolo-yaw* 0)
+     ;;	 (setq *diabolo-yaw-rad* -2))
+     ;; TODO
+     
      ;;(setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
      ;;(setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
      (setq *diff-x* 0)
@@ -190,7 +197,7 @@
 	     )
 	   (progn
 	     (setq *diff-theta* *diabolo-yaw-rad*)
-	     (setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))
+	     (setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 1000)) ;;10000))
 	     (send *ac* :send-goal *goal*)
 	     )
 	   )
