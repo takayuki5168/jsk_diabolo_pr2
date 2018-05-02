@@ -1,7 +1,7 @@
 import numpy as np
 
 # init params
-PAST_STATE_NUM = 1
+PAST_STATE_NUM = 2
 PAST_INPUT_NUM = 1
 PAST_NUM = max(PAST_STATE_NUM, PAST_INPUT_NUM)
 
@@ -17,7 +17,7 @@ input_arm = []
 input_base = []
 state_pitch = []
 state_yaw = []
-with open("../log/log-by-loggerpy4.log", "r") as f:
+with open("../log/log-by-loggerpy.log", "r") as f:
     for l in f.readlines():
         val = l.split(' ')
 
@@ -45,7 +45,7 @@ for i in range(DATA_NUM - PAST_NUM): # 0-16
         X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + PAST_NUM - j - 1]
     for j in range(PAST_INPUT_NUM):
         X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + PAST_NUM - j - 1]
-    X[PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM + 1, i:i + 1] = 1
+    #X[PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM + 1, i:i + 1] = 1
 
 # assign Y
 for i in range(DATA_NUM - PAST_NUM): # 0-16
