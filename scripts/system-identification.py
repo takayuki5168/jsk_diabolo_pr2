@@ -2,7 +2,7 @@ import numpy as np
 
 PAST_STATE_NUM = 3
 PAST_INPUT_NUM = 3
-PAST_NUM = max(PAST_INPUT_NUM, PAST_STATE_NUM)
+PAST_NUM = max(PAST_STATE_NUM, PAST_INPUT_NUM)
 
 STATE_DIM = 2
 INPUT_DIM = 2
@@ -30,115 +30,25 @@ for ii in range(len(input_arm ) - 3):
     state_pitch.append(tmp1)
     state_yaw.append(tmp2)
 
-DATA_NUM = len(input_arm)
-
 input_list = [np.matrix([input_arm[i], input_base[i]]).T for i in range(len(input_arm))]
 state_list = [np.matrix([state_pitch[i], state_yaw[i]]).T for i in range(len(state_pitch))]
 
-A_all = np.matrix(np.zeros((VAR_NUM, VAR_NUM)))
-B_all = np.matrix(np.zeros((STATE_DIM, VAR_NUM)))
+DATA_NUM = len(input_arm)
 
-# calc B_all
-# derivative of state coef
-offset = 0
-for i in range(PAST_STATE_NUM): # 0 - 2
-    B_tmp_mat = np.matrix(np.zeros((STATE_DIM, STATE_DIM)))
-    for j in range(PAST_NUM, DATA_NUM): # 3 - 19 (sigma)
-        B_tmp_mat += state_list[j] * input_list[j - i - 1].T
-    print B_all[0:STATE_DIM, offset + STATE_DIM * i:offset + STATE_DIM * (i + 1)]
-    B_all[0:STATE_DIM, offset + STATE_DIM * i:offset + STATE_DIM * (i + 1)] = B_tmp_mat
-# derivative of input coef
-offset += STATE_DIM * PAST_STATE_NUM
-for i in range(PAST_NUM): # 0 - 2
-    B_tmp_mat = np.matrix(np.zeros((STATE_DIM, INPUT_DIM)))
-    for j in range(PAST_NUM, DATA_NUM): # 3 - 19 (sigma)
-        B_tmp_mat += state_list[j] * state_list[j - i - 1].T
-    print B_all[0:STATE_DIM, offset + INPUT_DIM * i:offset + INPUT_DIM * (i + 1)]
-    B_all[0:STATE_DIM, offset + INPUT_DIM * i:offset + INPUT_DIM * (i + 1)] = B_tmp_mat
-# derivative of bias
-offset += INPUT_DIM * PAST_INPUT_NUM
-for i in range(1): # 0 - 2
-    B_tmp_mat = np.matrix(np.zeros((STATE_DIM, 1)))
-    for j in range(PAST_NUM, DATA_NUM): # 3 - 9 (sigma)
-        B_tmp_mat += state_list[j]
-    print B_all[0:STATE_DIM, offset + 1 * i:offset + 1 * (i + 1)]        
-    B_all[0:STATE_DIM, offset + 1 * i:offset + 1 * (i + 1)] = B_tmp_mat
-    
-# calc A_all
-# derivative of state coef
-wide_offset = 0
-for i in range(PAST_STATE_NUM): # 0 - 2
-    narrow_offset = 0
-    for j in range(PAST_INPUT_NUM):
-        A_tmp_mat = np.matrix(np.zeros((STATE_DIM, STATE_DIM)))
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)
-            A_tmp_mat += state_list[k - j] * state_list[k - i - 1].T
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-    narrow_offset += PAST_STATE_NUM * STATE_DIM
-    for j in range(PAST_STATE_NUM):
-        A_tmp_mat = np.matrix(np.zeros((INPUT_DIM, STATE_DIM)))
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)        
-            A_tmp_mat += input_list[k - j] * state_list[k - i - 1].T
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-    narrow_offset += PAST_INPUT_NUM * INPUT_DIM
-    for j in range(1):
-        A_tmp_mat = np.matrix(np.zeros((1, STATE_DIM)))                
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)        
-            A_tmp_mat += state_list[k - i - 1].T
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-# derivative of input coef
-wide_offset += STATE_DIM * PAST_STATE_NUM
-for i in range(PAST_INPUT_NUM): # 0 - 2
-    narrow_offset = 0
-    for j in range(PAST_INPUT_NUM):
-        A_tmp_mat = np.matrix(np.zeros((INPUT_DIM, INPUT_DIM)))
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)
-            A_tmp_mat += state_list[k - j] * input_list[k - i - 1].T
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i: wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i: wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-    narrow_offset += PAST_INPUT_NUM * INPUT_DIM
-    for j in range(PAST_STATE_NUM):
-        A_tmp_mat = np.matrix(np.zeros((STATE_DIM, INPUT_DIM)))
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)        
-            A_tmp_mat += input_list[k - j] * input_list[k - i - 1].T
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-    narrow_offset += PAST_STATE_NUM * STATE_DIM
-    for j in range(1):
-        A_tmp_mat = np.matrix(np.zeros((1, INPUT_DIM)))                
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)        
-            A_tmp_mat += input_list[k - i - 1].T
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-# derivative of bias
-wide_offset += PAST_STATE_NUM * STATE_DIM
-for i in range(1): # 0
-    narrow_offset = 0
-    for j in range(PAST_INPUT_NUM):
-        A_tmp_mat = np.matrix(np.zeros((INPUT_DIM, 1)))
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)
-            A_tmp_mat += state_list[k - j]
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-    narrow_offset += PAST_INPUT_NUM * INPUT_DIM
-    for j in range(PAST_STATE_NUM):
-        A_tmp_mat = np.matrix(np.zeros((STATE_DIM, 1)))
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)        
-            A_tmp_mat += input_list[k - j]
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-    narrow_offset += PAST_STATE_NUM * STATE_DIM
-    for j in range(1):
-        A_tmp_mat = np.matrix(np.zeros((1, 1)))                
-        for k in range(PAST_INPUT_NUM, DATA_NUM): # 3 - 9 (sigma)        
-            A_tmp_mat += 1
-        print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
-        A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
+X = np.matrix(np.zeros((VAR_NUM, DATA_NUM - PAST_NUM)))
+Y = np.matrix(np.zeros((STATE_DIM, DATA_NUM - PAST_NUM)))
 
-# calc parameters        
-print np.linalg.matrix_rank(A_all)
-print B_all * A_all**-1
+# assign X
+for i in range(DATA_NUM - PAST_NUM): # 0-16   not 3-19
+    for j in range(PAST_STATE_NUM):
+        X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + PAST_NUM - j - 1]
+    for j in range(PAST_INPUT_NUM):
+        X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + PAST_NUM - j - 1]
+    X[PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM + 1, i:i + 1] = 1
 
+# assign Y
+for i in range(DATA_NUM - PAST_NUM): # 0 - 16   not 3-19
+    Y[0:STATE_DIM, i:i + 1] = state_list[i + PAST_NUM]
+
+A = Y * np.linalg.pinv(X)
+print A
