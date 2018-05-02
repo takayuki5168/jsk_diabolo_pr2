@@ -21,7 +21,6 @@ for ii in range(len(input_arm ) - 3):
     + 4 * input_base[i - 1] + 5 * input_base[i - 2] + 6 * input_base[i - 3]
     + 7 * state_pitch[i - 1] + 8 * state_pitch[i - 2] + 9 * state_pitch[i - 3]
     + 10 * state_yaw[i - 1] + 11 * state_yaw[i - 2] + 12 * state_yaw[i - 3] + 10
-
     
     tmp2 = 11 * input_arm[i - 1] + 12 * input_arm[i - 2] + 13 * input_arm[i - 3]
     + 14 * input_base[i - 1] + 15 * input_base[i - 2] + 16 * input_base[i - 3]
@@ -46,25 +45,25 @@ for i in range(PAST_STATE_NUM): # 0 - 2
     B_tmp_mat = np.matrix(np.zeros((STATE_DIM, STATE_DIM)))
     for j in range(PAST_NUM, DATA_NUM): # 3 - 19 (sigma)
         B_tmp_mat += state_list[j] * input_list[j - i - 1].T
+    print B_all[0:STATE_DIM, offset + STATE_DIM * i:offset + STATE_DIM * (i + 1)]
     B_all[0:STATE_DIM, offset + STATE_DIM * i:offset + STATE_DIM * (i + 1)] = B_tmp_mat
-
 # derivative of input coef
 offset += STATE_DIM * PAST_STATE_NUM
 for i in range(PAST_NUM): # 0 - 2
     B_tmp_mat = np.matrix(np.zeros((STATE_DIM, INPUT_DIM)))
     for j in range(PAST_NUM, DATA_NUM): # 3 - 19 (sigma)
         B_tmp_mat += state_list[j] * state_list[j - i - 1].T
+    print B_all[0:STATE_DIM, offset + INPUT_DIM * i:offset + INPUT_DIM * (i + 1)]
     B_all[0:STATE_DIM, offset + INPUT_DIM * i:offset + INPUT_DIM * (i + 1)] = B_tmp_mat
-
-# derivative of bias coef
+# derivative of bias
 offset += INPUT_DIM * PAST_INPUT_NUM
 for i in range(1): # 0 - 2
     B_tmp_mat = np.matrix(np.zeros((STATE_DIM, 1)))
     for j in range(PAST_NUM, DATA_NUM): # 3 - 9 (sigma)
         B_tmp_mat += state_list[j]
+    print B_all[0:STATE_DIM, offset + 1 * i:offset + 1 * (i + 1)]        
     B_all[0:STATE_DIM, offset + 1 * i:offset + 1 * (i + 1)] = B_tmp_mat
     
-
 # calc A_all
 # derivative of state coef
 wide_offset = 0
@@ -76,8 +75,6 @@ for i in range(PAST_STATE_NUM): # 0 - 2
             A_tmp_mat += state_list[k - j] * state_list[k - i - 1].T
         print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
         A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-        
-
     narrow_offset += PAST_STATE_NUM * STATE_DIM
     for j in range(PAST_STATE_NUM):
         A_tmp_mat = np.matrix(np.zeros((INPUT_DIM, STATE_DIM)))
@@ -85,7 +82,6 @@ for i in range(PAST_STATE_NUM): # 0 - 2
             A_tmp_mat += input_list[k - j] * state_list[k - i - 1].T
         print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
         A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-
     narrow_offset += PAST_INPUT_NUM * INPUT_DIM
     for j in range(1):
         A_tmp_mat = np.matrix(np.zeros((1, STATE_DIM)))                
@@ -103,7 +99,6 @@ for i in range(PAST_INPUT_NUM): # 0 - 2
             A_tmp_mat += state_list[k - j] * input_list[k - i - 1].T
         print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i: wide_offset + INPUT_DIM * (i + 1)]
         A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i: wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-
     narrow_offset += PAST_INPUT_NUM * INPUT_DIM
     for j in range(PAST_STATE_NUM):
         A_tmp_mat = np.matrix(np.zeros((STATE_DIM, INPUT_DIM)))
@@ -111,7 +106,6 @@ for i in range(PAST_INPUT_NUM): # 0 - 2
             A_tmp_mat += input_list[k - j] * input_list[k - i - 1].T
         print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
         A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-
     narrow_offset += PAST_STATE_NUM * STATE_DIM
     for j in range(1):
         A_tmp_mat = np.matrix(np.zeros((1, INPUT_DIM)))                
@@ -119,7 +113,7 @@ for i in range(PAST_INPUT_NUM): # 0 - 2
             A_tmp_mat += input_list[k - i - 1].T
         print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
         A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-# derivative of state coef
+# derivative of bias
 wide_offset += PAST_STATE_NUM * STATE_DIM
 for i in range(1): # 0
     narrow_offset = 0
@@ -129,7 +123,6 @@ for i in range(1): # 0
             A_tmp_mat += state_list[k - j]
         print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
         A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-
     narrow_offset += PAST_INPUT_NUM * INPUT_DIM
     for j in range(PAST_STATE_NUM):
         A_tmp_mat = np.matrix(np.zeros((STATE_DIM, 1)))
@@ -137,7 +130,6 @@ for i in range(1): # 0
             A_tmp_mat += input_list[k - j]
         print A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)]
         A_all[narrow_offset + INPUT_DIM * j:narrow_offset + INPUT_DIM * (j + 1), wide_offset + INPUT_DIM * i:wide_offset + INPUT_DIM * (i + 1)] = A_tmp_mat
-
     narrow_offset += PAST_STATE_NUM * STATE_DIM
     for j in range(1):
         A_tmp_mat = np.matrix(np.zeros((1, 1)))                
