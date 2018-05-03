@@ -6,9 +6,9 @@ LOG_FILES = ['../log/log-by-loggerpy.log',
              '../log/log-by-loggerpy3.log',
              '../log/log-by-loggerpy4.log']
 
-def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 3):
+def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     # init params
-    PAST_STATE_NUM = PAST_STATE_NUM_
+    PAST_STATE_NUM = PAST_STATE_NUM_ # 2 or 3 or 4 or 5
     PAST_INPUT_NUM = PAST_INPUT_NUM_
     PAST_NUM = max(PAST_STATE_NUM, PAST_INPUT_NUM)
     STATE_DIM = 2
@@ -139,14 +139,14 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 3):
 
 # test some cases
 TEST_NUM = 10
-THE_LOG = 1
+THE_LOG = 3
 error_pitch_all = [0 for i in range(TEST_NUM)]
 error_yaw_all = [0 for i in range(TEST_NUM)]
 for i in range(len(LOG_FILES)):
     for j in range(TEST_NUM):
         if THE_LOG == i:
             continue
-        res1, res2 = fit(THE_LOG, i, False, j + 1, j + 1)
+        res1, res2 = fit(THE_LOG, i, False, j + 1, 1)
         error_pitch_all[j] += res1
         error_yaw_all[j] += res2
 print '[ErrorPitchAll] ' + str(error_pitch_all) + ' [ErrorYawAll] ' + str(error_yaw_all)
