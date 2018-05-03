@@ -6,7 +6,7 @@ LOG_FILES = ['../log/log-by-loggerpy.log',
              '../log/log-by-loggerpy3.log',
              '../log/log-by-loggerpy4.log']
 
-def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 6, PAST_INPUT_NUM_ = 6):
+def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 3):
     # init params
     PAST_STATE_NUM = PAST_STATE_NUM_
     PAST_INPUT_NUM = PAST_INPUT_NUM_
@@ -116,34 +116,40 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 6, PAST_INPUT_NUM_ = 6):
     
     error_pitch = 0
     error_yaw = 0
-    # write log randomly    
-    for i in range(DATA_NUM - PAST_NUM): # 0-16
-        idx = int((random.random() * 1000000) % (DATA_NUM - PAST_NUM))
-        file_pitch.write('{} {}\n'.format(float(predicted_Y[idx][0]), float(Y[0:STATE_DIM, idx:idx + 1][0])))
-        file_yaw.write('{} {}\n'.format(float(predicted_Y[idx][1]), float(Y[0:STATE_DIM, idx:idx + 1][1])))
-        error_pitch += abs(float(predicted_Y[idx][0]) - float(Y[0:STATE_DIM, idx:idx + 1][0]))
-        error_yaw += abs(float(predicted_Y[idx][1]) - float(Y[0:STATE_DIM, idx:idx + 1][1]))
+    # write log randomly
+    random_list = range(DATA_NUM - PAST_NUM)
+    random.shuffle(random_list)
+    for i in random_list: # 0-16
+        file_pitch.write('{} {}\n'.format(float(predicted_Y[i][0]), float(Y[0:STATE_DIM, i:i + 1][0])))
+        file_yaw.write('{} {}\n'.format(float(predicted_Y[i][1]), float(Y[0:STATE_DIM, i:i + 1][1])))
+        error_pitch += abs(float(predicted_Y[i][0]) - float(Y[0:STATE_DIM, i:i + 1][0]))
+        error_yaw += abs(float(predicted_Y[i][1]) - float(Y[0:STATE_DIM, i:i + 1][1]))
         
     file_pitch.close()    
     file_yaw.close()
     
-    print '[LogFile] ' + str(log1) + ' ' + str(log2) + ' [PastNum] ' + str(PAST_STATE_NUM_) + ' ' + str(PAST_INPUT_NUM_) + ' [ErrorPitch] ' + str(error_pitch) + ' [ErrorYaw] ' + str(error_yaw)
-    return error_pitch, error_yaw
+    error_pitch_ave = error_pitch / (DATA_NUM - PAST_NUM)
+    error_yaw_ave = error_yaw / (DATA_NUM - PAST_NUM)
+    print '[LogFile] ' + str(log1) + ' ' + str(log2) + ' [PastNum] ' + str(PAST_STATE_NUM_) + ' ' + str(PAST_INPUT_NUM_) + ' [ErrorPitch] ' + str(error_pitch_ave) + ' [ErrorYaw] ' + str(error_yaw_ave)
+    return error_pitch_ave, error_yaw_ave
 
     
 # test once
-fit(2, 1, True)
+#fit(3, 0, True, 2, 1)
 
 # test some cases
-#TEST_NUM = 15
-#error_pitch_all = [0 for i in range(TEST_NUM)]
-#error_yaw_all = [0 for i in range(TEST_NUM)]
-#for i in range(len(LOG_FILES)):
-#    for j in range(TEST_NUM):
-#        res1, res2 = fit(1, i, False, j + 1, j + 1)
-#        error_pitch_all[j] += res1
-#        error_yaw_all[j] += res2
-#print '[ErrorPitchAll] ' + str(error_pitch_all) + ' [ErrorYawAll] ' + str(error_yaw_all)
+TEST_NUM = 10
+THE_LOG = 1
+error_pitch_all = [0 for i in range(TEST_NUM)]
+error_yaw_all = [0 for i in range(TEST_NUM)]
+for i in range(len(LOG_FILES)):
+    for j in range(TEST_NUM):
+        if THE_LOG == i:
+            continue
+        res1, res2 = fit(THE_LOG, i, False, j + 1, j + 1)
+        error_pitch_all[j] += res1
+        error_yaw_all[j] += res2
+print '[ErrorPitchAll] ' + str(error_pitch_all) + ' [ErrorYawAll] ' + str(error_yaw_all)
 
 # test all cases
 #for i in range(len(LOG_FILES)):
