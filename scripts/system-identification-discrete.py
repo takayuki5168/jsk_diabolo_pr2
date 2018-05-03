@@ -111,7 +111,7 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     error_yaw = 0
     # write log randomly
     random_list = range(DATA_NUM - PAST_NUM)
-    random.shuffle(random_list)
+    #random.shuffle(random_list)
     for i in random_list: # 0-16
         file_pitch.write('{} {}\n'.format(float(predicted_Y[i][0]), float(Y[0:STATE_DIM, i:i + 1][0])))
         file_yaw.write('{} {}\n'.format(float(predicted_Y[i][1]), float(Y[0:STATE_DIM, i:i + 1][1])))
@@ -131,7 +131,7 @@ flag = 0
 
 if flag == 0:
     # test once
-    fit(3, 1, True, 3, 1)
+    fit(3, 1, True, 10, 10)
     
 elif flag == 1:
     # test some cases
