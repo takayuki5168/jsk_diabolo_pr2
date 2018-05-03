@@ -6,12 +6,12 @@ LOG_FILES = ['../log/log-by-loggerpy.log',
              '../log/log-by-loggerpy3.log',
              '../log/log-by-loggerpy4.log']
 
-def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 5, PAST_INPUT_NUM_ = 5):
+def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 6, PAST_INPUT_NUM_ = 6):
     # init params
     PAST_STATE_NUM = PAST_STATE_NUM_
     PAST_INPUT_NUM = PAST_INPUT_NUM_
     PAST_NUM = max(PAST_STATE_NUM, PAST_INPUT_NUM)
-    STATE_DIM = 2 
+    STATE_DIM = 2
     INPUT_DIM = 2
     
     #VAR_NUM = PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM + 1
@@ -132,23 +132,23 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 5, PAST_INPUT_NUM_ = 5):
 
     
 # test once
-#fit(LOG_FILES[0], LOG_FILES[1], True, 5, 5)
+fit(2, 1, True)
 
 # test some cases
-TEST_NUM = 15
-error_pitch_all = [0 for i in range(TEST_NUM)]
-error_yaw_all = [0 for i in range(TEST_NUM)]
-for i in range(len(LOG_FILES)):
-    for j in range(TEST_NUM):
-        res1, res2 = fit(1, i, False, j + 1, j + 1)
-        error_pitch_all[j] += res1
-        error_yaw_all[j] += res2
-print '[ErrorPitchAll] ' + str(error_pitch_all) + ' [ErrorYawAll] ' + str(error_yaw_all)
+#TEST_NUM = 15
+#error_pitch_all = [0 for i in range(TEST_NUM)]
+#error_yaw_all = [0 for i in range(TEST_NUM)]
+#for i in range(len(LOG_FILES)):
+#    for j in range(TEST_NUM):
+#        res1, res2 = fit(1, i, False, j + 1, j + 1)
+#        error_pitch_all[j] += res1
+#        error_yaw_all[j] += res2
+#print '[ErrorPitchAll] ' + str(error_pitch_all) + ' [ErrorYawAll] ' + str(error_yaw_all)
 
 # test all cases
 #for i in range(len(LOG_FILES)):
 #    for j in range(len(LOG_FILES)):
 #        for k in range(20):
-#            fit(LOG_FILES[i], LOG_FILES[j], False, k + 1, k + 1)
+#            fit(i, j, False, k + 1, k + 1)
 
     
