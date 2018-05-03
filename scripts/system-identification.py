@@ -128,15 +128,22 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 5, PAST_INPUT_NUM_ = 5):
     file_yaw.close()
     
     print '[LogFile] ' + str(log1) + ' ' + str(log2) + ' [PastNum] ' + str(PAST_STATE_NUM_) + ' ' + str(PAST_INPUT_NUM_) + ' [ErrorPitch] ' + str(error_pitch) + ' [ErrorYaw] ' + str(error_yaw)
+    return error_pitch, error_yaw
 
     
 # test once
 #fit(LOG_FILES[0], LOG_FILES[1], True, 5, 5)
 
 # test some cases
+TEST_NUM = 15
+error_pitch_all = [0 for i in range(TEST_NUM)]
+error_yaw_all = [0 for i in range(TEST_NUM)]
 for i in range(len(LOG_FILES)):
-    for j in range(15):
-        fit(0, i, False, j + 1, j + 1)
+    for j in range(TEST_NUM):
+        res1, res2 = fit(1, i, False, j + 1, j + 1)
+        error_pitch_all[j] += res1
+        error_yaw_all[j] += res2
+print '[ErrorPitchAll] ' + str(error_pitch_all) + ' [ErrorYawAll] ' + str(error_yaw_all)
 
 # test all cases
 #for i in range(len(LOG_FILES)):
