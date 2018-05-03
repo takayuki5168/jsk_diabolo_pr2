@@ -1,10 +1,10 @@
 import numpy as np
 import random
 
-LOG_FILES = ['../log/log-by-loggerpy.log',
+LOG_FILES = ['../log/log-by-loggerpy0.log',
+             '../log/log-by-loggerpy1.log',
              '../log/log-by-loggerpy2.log',
-             '../log/log-by-loggerpy3.log',
-             '../log/log-by-loggerpy4.log']
+             '../log/log-by-loggerpy3.log']
 
 def fit(log, DERIVATIVE_NUM_ = 3 - 1)
     # init params

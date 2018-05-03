@@ -1,10 +1,10 @@
 import numpy as np
 import random
 
-LOG_FILES = ['../log/log-by-loggerpy.log',
+LOG_FILES = ['../log/log-by-loggerpy0.log',
+             '../log/log-by-loggerpy1.log',
              '../log/log-by-loggerpy2.log',
-             '../log/log-by-loggerpy3.log',
-             '../log/log-by-loggerpy4.log']
+             '../log/log-by-loggerpy3.log']
 
 # PAST_INPUT_NUM_ shoud be 1 because of using state feedback of ModernControl
 def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
