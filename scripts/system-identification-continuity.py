@@ -1,12 +1,12 @@
 import numpy as np
 import random
 
-LOG_FILES = ['../log/log-by-loggerpy0.log',
-             '../log/log-by-loggerpy1.log',
-             '../log/log-by-loggerpy2.log',
-             '../log/log-by-loggerpy3.log']
+LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
+             '../log/log-by-logger/log-by-loggerpy1.log',
+             '../log/log-by-logger/log-by-loggerpy2.log',
+             '../log/log-by-logger/log-by-loggerpy3.log']
 
-def fit(log, DERIVATIVE_NUM_ = 3 - 1)
+def fit(log, DERIVATIVE_NUM_ = 3 - 1):
     # init params
     DERIVATIVE_NUM = DERIVATIVE_NUM_ # DERIVATIVE_NUM of state feedback
     STATE_DIM = 2

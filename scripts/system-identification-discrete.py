@@ -1,10 +1,10 @@
 import numpy as np
 import random
 
-LOG_FILES = ['../log/log-by-loggerpy0.log',
-             '../log/log-by-loggerpy1.log',
-             '../log/log-by-loggerpy2.log',
-             '../log/log-by-loggerpy3.log']
+LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
+             '../log/log-by-logger/log-by-loggerpy1.log',
+             '../log/log-by-logger/log-by-loggerpy2.log',
+             '../log/log-by-logger/log-by-loggerpy3.log']
 
 # PAST_INPUT_NUM_ shoud be 1 because of using state feedback of ModernControl
 def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
@@ -126,28 +126,31 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     print '[LogFile] ' + str(log1) + ' ' + str(log2) + ' [PastNum] ' + str(PAST_STATE_NUM_) + ' ' + str(PAST_INPUT_NUM_) + ' [ErrorPitch] ' + str(error_pitch_ave) + ' [ErrorYaw] ' + str(error_yaw_ave)
     return error_pitch_ave, error_yaw_ave
 
+
+flag = 0
+
+if flag == 0:
+    # test once
+    fit(3, 1, True, 3, 1)
     
-# test once
-#fit(3, 0, True, 2, 1)
-
-# test some cases
-TEST_NUM = 10
-THE_LOG = 3
-error_pitch_all = [0 for i in range(TEST_NUM)]
-error_yaw_all = [0 for i in range(TEST_NUM)]
-for i in range(len(LOG_FILES)):
-    for j in range(TEST_NUM):
-        if THE_LOG == i:
-            continue
-        res1, res2 = fit(THE_LOG, i, False, j + 1, 1)
-        error_pitch_all[j] += res1
-        error_yaw_all[j] += res2
-print '[ErrorPitchAll] ' + str(error_pitch_all) + ' [ErrorYawAll] ' + str(error_yaw_all)
-
-# test all cases
-#for i in range(len(LOG_FILES)):
-#    for j in range(len(LOG_FILES)):
-#        for k in range(20):
-#            fit(i, j, False, k + 1, k + 1)
-
+elif flag == 1:
+    # test some cases
+    TEST_NUM = 10
+    THE_LOG = 3
+    error_pitch_all = [0 for i in range(TEST_NUM)]
+    error_yaw_all = [0 for i in range(TEST_NUM)]
+    for i in range(len(LOG_FILES)):
+        for j in range(TEST_NUM):
+            if THE_LOG == i:
+                continue
+            res1, res2 = fit(THE_LOG, i, False, j + 1, 1)
+            error_pitch_all[j] += res1
+            error_yaw_all[j] += res2
+    print '[ErrorPitchAll] ' + str(error_pitch_all) + ' [ErrorYawAll] ' + str(error_yaw_all)
     
+elif flag == 2:
+    #test all cases
+    for i in range(len(LOG_FILES)):
+        for j in range(len(LOG_FILES)):
+            for k in range(20):
+                fit(i, j, False, k + 1, k + 1)
