@@ -59,6 +59,10 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     A = Y * np.linalg.pinv(X)
     if PRINT_A_:
         print A
+    # TODO pinv for normalization
+    #A = Y * (np.linalg.inv(X.T * X) * X.T)
+    #if PRINT_A_:
+    #    print A
     
     
     # reload data
@@ -131,7 +135,7 @@ flag = 0
 
 if flag == 0:
     # test once
-    fit(3, 1, True, 10, 10)
+    fit(0, 1, True, 3, 3)
     
 elif flag == 1:
     # test some cases
