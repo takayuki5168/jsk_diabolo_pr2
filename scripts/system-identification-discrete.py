@@ -6,6 +6,7 @@ LOG_FILES = ['../log/log-by-loggerpy.log',
              '../log/log-by-loggerpy3.log',
              '../log/log-by-loggerpy4.log']
 
+# PAST_INPUT_NUM_ shoud be 1 because of using state feedback of ModernControl
 def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     # init params
     PAST_STATE_NUM = PAST_STATE_NUM_ # 2 or 3 or 4 or 5
@@ -13,10 +14,7 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     PAST_NUM = max(PAST_STATE_NUM, PAST_INPUT_NUM)
     STATE_DIM = 2
     INPUT_DIM = 2
-    
-    #VAR_NUM = PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM + 1
-    VAR_NUM = PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM
-    
+    VAR_NUM = PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM    # not using bias state
     
     
     # load data
@@ -27,7 +25,6 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     with open(LOG_FILES[log1], "r") as f:
         for l in f.readlines():
             val = l.split(' ')
-    
             if len(val) != 4:
                 break
             
@@ -46,14 +43,12 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     Y = np.matrix(np.zeros((STATE_DIM, DATA_NUM - PAST_NUM)))
     
     
-    
     for i in range(DATA_NUM - PAST_NUM): # 0-16
         # assign X
         for j in range(PAST_STATE_NUM):
             X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + PAST_NUM - j - 1]
         for j in range(PAST_INPUT_NUM):
             X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + PAST_NUM - j - 1]
-        #X[PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM + 1, i:i + 1] = 1
         
         # assign Y
         for i in range(DATA_NUM - PAST_NUM): # 0-16
@@ -64,7 +59,6 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     A = Y * np.linalg.pinv(X)
     if PRINT_A_:
         print A
-    
     
     
     # reload data
@@ -100,7 +94,6 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
             X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + PAST_NUM - j - 1]
         for j in range(PAST_INPUT_NUM):
             X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + PAST_NUM - j - 1]
-        #X[PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + PAST_INPUT_NUM * INPUT_DIM + 1, i:i + 1] = 1
     
         # reassign Y
         for i in range(DATA_NUM - PAST_NUM): # 0-16
