@@ -56,15 +56,15 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     
     
     # calc params
-    A = Y * np.linalg.pinv(X)
+    # A = Y * np.linalg.pinv(X)
+    # TODO pinv for normalization
+    zz = 0
+    pp = 0
+    yy = 0
+    A = Y * (X.T * (X * X.T + np.diag([pp, yy, pp, yy, zz, zz]))**-1)
     if PRINT_A_:
         print A
-    # TODO pinv for normalization
-    #A = Y * (np.linalg.inv(X.T * X) * X.T)
-    #if PRINT_A_:
-    #    print A
-    
-    
+        
     # reload data
     input_arm = []
     input_base = []
@@ -135,7 +135,7 @@ flag = 0
 
 if flag == 0:
     # test once
-    fit(0, 1, True, 3, 3)
+    fit(0, 1, True, 1, 2)
     
 elif flag == 1:
     # test some cases
