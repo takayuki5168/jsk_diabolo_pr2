@@ -92,6 +92,10 @@ class DoubleDQN:
                     agents[turn].stop_episode_and_train(, reward, True)
                 else:
                     turn = 1 if turn == 0 else 0
+            if i % 10 == 0:
+                print('episode:', i, 'R:', R, 'statictics:', agent.get_statistics())
+                agent.save('agent')
+
         
 
 if __name__ == '__main__':

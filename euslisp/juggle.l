@@ -23,10 +23,17 @@
   
   (ros::load-ros-manifest "roseus")
   (ros::roseus "listener")
+
+  ;; subscribe diabolo
   (ros::subscribe "sample_pcl/diabolo/pitch" std_msgs::float64
 		  #'(lambda (msg) (setq *diabolo-pitch* (send msg :data))))
   (ros::subscribe "sample_pcl/diabolo/yaw" std_msgs::float64
 		  #'(lambda (msg) (setq *diabolo-yaw* (send msg :data))))
+
+  ;; subscribe joy
+  (ros::subscribe "joy" sensor_msgs::Joy
+		  #'(lambda (msg) (setq *joy* (send msg :axes))))
+  
   
   (load "package://pr2eus/pr2-interface.l")
   (pr2-init)
@@ -90,6 +97,66 @@
     (send *pr2* :larm :inverse-kinematics *roll-4-left-cube*)    
     (setq *roll-4-pos* (send *pr2* :angle-vector))
     )
+
+;;  (progn ;; jump
+;;    (setq *jump-start-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -150 1000)))
+;;    (send *pr2* :rarm :inverse-kinematics *jump-start-right-cube*)
+;;    (setq *jump-start-left-cube* (make-cube 100 100 100 :pos (float-vector 600 150 1000)))
+;;    (send *pr2* :larm :inverse-kinematics *jump-start-left-cube*)
+;;    (setq *jump-1-pos* (send *pr2* :angle-vector))
+;;
+;;    (setq *jump-mid-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -500 900)))
+;;    (send *pr2* :rarm :inverse-kinematics *jump-mid-right-cube*)
+;;    (setq *jump-mid-left-cube* (make-cube 100 100 100 :pos (float-vector 600 500 900)))
+;;    (send *pr2* :larm :inverse-kinematics *jump-mid-left-cube*)
+;;    (setq *jump-2-pos* (send *pr2* :angle-vector))
+;;
+;;    
+;;    (setq *jump-mid2-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -500 900)))
+;;    (send *jump-mid2-right-cube* :rotate 2.0 :x)        
+;;    (send *pr2* :rarm :inverse-kinematics *jump-mid2-right-cube*)
+;;    (setq *jump-mid2-left-cube* (make-cube 100 100 100 :pos (float-vector 600 500 900)))
+;;    (send *jump-mid2-left-cube* :rotate -2.0 :x)                
+;;    (send *pr2* :larm :inverse-kinematics *jump-mid2-left-cube*)
+;;    (setq *jump-3-pos* (send *pr2* :angle-vector))
+;;
+;;    (setq *jump-mid3-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -500 1250)))
+;;    (send *jump-mid3-right-cube* :rotate 4.0 :x)        
+;;    (send *pr2* :rarm :inverse-kinematics *jump-mid3-right-cube*)
+;;    (setq *jump-mid3-left-cube* (make-cube 100 100 100 :pos (float-vector 600 500 1250)))
+;;    (send *jump-mid3-left-cube* :rotate -4.0 :x)            
+;;    (send *pr2* :larm :inverse-kinematics *jump-mid3-left-cube*)
+;;    (setq *jump-4-pos* (send *pr2* :angle-vector))
+;;
+;;    ;;(setq *jump-mid4-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -500 900)))
+;;    ;;(send *jump-mid4-right-cube* :rotate -0.4 :x)    
+;;    ;;(send *pr2* :rarm :inverse-kinematics *jump-mid4-right-cube*)
+;;    ;;(setq *jump-mid4-left-cube* (make-cube 100 100 100 :pos (float-vector 600 500 900)))
+;;    ;;(send *jump-mid4-left-cube* :rotate 0.4 :x)    
+;;    ;;(send *pr2* :larm :inverse-kinematics *jump-mid4-left-cube*)
+;;    ;;(setq *jump-5-pos* (send *pr2* :angle-vector))
+;;    
+;;    ;;(setq *jump-end-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -650 1250)))
+;;    ;;(send *jump-end-right-cube* :rotate -0.4 :x)
+;;    ;;(send *pr2* :rarm :inverse-kinematics *jump-end-right-cube*)
+;;    ;;(setq *jump-end-left-cube* (make-cube 100 100 100 :pos (float-vector 600 650 1250)))
+;;    ;;(send *jump-end-left-cube* :rotate 0.4 :x)
+;;    ;;(send *pr2* :larm :inverse-kinematics *jump-end-left-cube*)
+;;    ;;(setq *jump-3-pos* (send *pr2* :angle-vector))
+;;    )
+  )
+
+(defun jump ()
+  (send *ri* :angle-vector *jump-1-pos*)
+  (send *ri* :wait-interpolation)
+  ;;(send *ri* :angle-vector *jump-2-pos*)
+  ;;(send *ri* :wait-interpolation)
+  ;;(send *ri* :angle-vector-sequence *jump-3-pos* *jump-4-pos* 400)
+  ;;(send *ri* :angle-vector *jump-4-pos* 400)
+  ;;(send *ri* :wait-interpolation)
+  (send *ri* :angle-vector *jump-4-pos* 1000)
+  (send *ri* :wait-interpolation)  
+  (send *ri* :angle-vector *jump-1-pos*)  
   )
 
 (defun control (right-x-diff) ;; |right-x-diff| < *max-x-dif*(= 220)
@@ -112,7 +179,7 @@
   (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
   )
 
-(defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t))
+(defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t) &key (teach nil))
   (if (eq roll-valid t)
       (progn
 	(send *ri* :angle-vector *roll-1-pos* 5000)
@@ -139,7 +206,13 @@
    
    (progn ;; pitch
      ;; P制御
-     (setq *control-x-diff* (* *diabolo-pitch* 10)) ;; TODO params
+     (if (eq teach t)
+	 (progn
+	   (setq *joy-arm-input* (elt *joy* 3))
+	   (setq *control-x-diff* (* *joy-arm-input* 100))
+	   )
+	 (setq *control-x-diff* (* *diabolo-pitch* 10)) ;; TODO params
+       )
 
      ;; 最大最小制限
      (if (> *control-x-diff* *max-x-diff*)
@@ -160,6 +233,12 @@
      )
 
    (progn ;; yaw
+     (if (eq teach t)
+	 (progn
+	   (setq *joy-base-input* (elt *joy* 0))
+	   (setq *diabolo-yaw* (* *joy-base-input* 30))
+	   )
+       )     
      ;; 外れ値除去
      (if (> *diabolo-yaw* 60)
 	 (setq *diabolo-yaw* 0))
@@ -190,6 +269,7 @@
 	     )
 	   (progn
 	     (setq *diff-theta* *diabolo-yaw-rad*)
+	     (print  *diff-theta*)
 	     (setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 1000)) ;;10000))
 	     (send *ac* :send-goal *goal*)
 	     )
