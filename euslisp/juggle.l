@@ -269,7 +269,6 @@
 	     )
 	   (progn
 	     (setq *diff-theta* *diabolo-yaw-rad*)
-	     (print  *diff-theta*)
 	     (setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 1000)) ;;10000))
 	     (send *ac* :send-goal *goal*)
 	     )
