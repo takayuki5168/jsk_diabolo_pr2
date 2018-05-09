@@ -21,18 +21,10 @@ class GMM:
         self.min_inputs = [1000, 1000]
         self.max_inputs= [-1000, -1000]
 
-        self.num_of_split = 4
+        self.num_of_split = 2
         
-        self.arm_list1 = [[] for i in range(self.num_of_split)]
-        self.arm_list2 = [self.arm_list1 for i in range(self.num_of_split)]
-        self.arm_list3 = [self.arm_list2 for i in range(self.num_of_split)]
-        self.arm_list = [self.arm_list3 for i in range(self.num_of_split)]
-        
-        self.base_list1 = [[] for i in range(self.num_of_split)]
-        self.base_list2 = [self.base_list1 for i in range(self.num_of_split)]
-        self.base_list3 = [self.base_list2 for i in range(self.num_of_split)]
-        self.base_list = [self.base_list3 for i in range(self.num_of_split)]        
-        
+        self.arm_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]
+        self.base_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]        
         
     def load_data(self):
         log_files = ['../log/log-by-logger/log-by-loggerpy0.log',
@@ -41,12 +33,11 @@ class GMM:
              '../log/log-by-logger/log-by-loggerpy3.log',
              '../log/log-by-logger/log-by-loggerpy4.log']        
 
-        pitch = 0
-        yaw = 0
-        odom_w = 0
-        
-        cnt = 0
         for log_file in log_files:
+          pitch = 0
+          yaw = 0
+          odom_w = 0
+          cnt = 0  
           with open(log_file) as f:
             for l in f.readlines():
                 w = l.split(' ')
@@ -67,7 +58,7 @@ class GMM:
                 yaw_ = yaw - past_yaw
         
                 cnt += 1
-                if cnt < 2:
+                if cnt < 1:
                     continue
 
                 # store pitch, pitch_, yaw, yaw_, arm, base
@@ -158,4 +149,4 @@ if __name__ == '__main__':
     gmm = GMM()
     gmm.load_data()
     gmm.split_data()
-    gmm.plot(3, 3, 0, 0)
+    gmm.plot(0, 0, 0, 1)
