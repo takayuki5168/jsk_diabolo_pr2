@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
 import matplotlib.pyplot as plt
 import numpy as np
 import signal, sys
 
+from sklearn.mixture import GMM
+import itertools
+
 def sigIntHandler(signal, frame):
     sys.exit(0)
 
-class GMM:
+class CalcGMM:
     def __init__(self):
         self.min_states = [0, 0, 0, 0]   # pitch, pitch_, yaw, yaw_
         self.max_states = [5, 15, 5, 5]   # pitch, pitch_, yaw, yaw_
@@ -24,7 +28,9 @@ class GMM:
         self.num_of_split = 2
         
         self.arm_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]
-        self.base_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]        
+        self.base_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]
+        self.arm_gmm_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]
+        self.base_gmm_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]                
         
     def load_data(self):
         log_files = ['../log/log-by-logger/log-by-loggerpy0.log',
@@ -128,25 +134,54 @@ class GMM:
             self.arm_list[idx_pitch][idx_pitch_][idx_yaw][idx_yaw_].append(arm)
             self.base_list[idx_pitch][idx_pitch_][idx_yaw][idx_yaw_].append(base)
 
-    def plot(self, ip, ip_, iy, iy_):                    
-        fig = plt.figure()
-        ax1 = fig.add_subplot(211)
-        ax2 = fig.add_subplot(212)
+    def fit_aic(self, ip, ip_, iy, iy_, max_gm_num = 5, plot_flag=True):
+        COVARIANCE_TYPES = ['spherical', 'tied', 'diag', 'full']
+        args = list(itertools.product(COVARIANCE_TYPES, range(1, max_gm_num + 1)))
+        models = np.zeros(len(args), dtype=object)
         
-        ax1.set_title('arm')
-        ax1.set_xlim(self.min_inputs[0], self.max_inputs[0])
-        ax1.hist(np.array(self.arm_list[ip][ip_][iy][iy_]), bins=50)
+        X = np.array([[i] for i in self.arm_list[ip][ip_][iy][iy_]])
+        for i, (ctype, n) in enumerate(args):
+            models[i] = GMM(n, covariance_type=ctype)
+            models[i].fit(X)
+        aic = np.array([m.aic(X) for m in models])
+        self.arm_gmm_list[ip][ip_][iy][iy_] = models[np.argmin(aic)]
         
-        ax2.set_title('base')
-        ax2.set_xlim(self.min_inputs[1], self.max_inputs[1])
-        ax2.hist(np.array(self.base_list[ip][ip_][iy][iy_]), bins=50)
-        
-        plt.show()
+        X = np.array([[i] for i in self.base_list[ip][ip_][iy][iy_]])
+        for i, (ctype, n) in enumerate(args):
+            models[i] = GMM(n, covariance_type=ctype)
+            models[i].fit(X)
+        aic = np.array([m.aic(X) for m in models])
+        self.base_gmm_list[ip][ip_][iy][iy_] = models[np.argmin(aic)]
+
+        if plot_flag:
+            fig = plt.figure()
+            ax1 = fig.add_subplot(211)
+            ax2 = fig.add_subplot(212)
+            
+            ax1.set_title('arm')
+            ax1.set_xlim(self.min_inputs[0], self.max_inputs[0])
+            ax1.hist(np.array(self.arm_list[ip][ip_][iy][iy_]), bins=50)
+            X_raw = np.array([[i] for i in self.arm_list[ip][ip_][iy][iy_]])
+            f = lambda x : np.exp(self.arm_gmm_list[ip][ip_][iy][iy_].score(x))        
+            X_pred = np.linspace(self.min_inputs[0], self.max_inputs[0], 1000)
+            Y_pred = np.vectorize(f)(X_pred)
+            ax1.plot(X_pred, Y_pred)        
+            
+            ax2.set_title('base')
+            ax2.set_xlim(self.min_inputs[1], self.max_inputs[1])
+            ax2.hist(np.array(self.base_list[ip][ip_][iy][iy_]), bins=50)
+            X_raw = np.array([[i] for i in self.base_list[ip][ip_][iy][iy_]])
+            f = lambda x : np.exp(self.base_gmm_list[ip][ip_][iy][iy_].score(x))        
+            X_pred = np.linspace(self.min_inputs[1], self.max_inputs[1], 1000)
+            Y_pred = np.vectorize(f)(X_pred)
+            ax2.plot(X_pred, Y_pred)        
+            
+            plt.show()
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigIntHandler)
                     
-    gmm = GMM()
+    gmm = CalcGMM()
     gmm.load_data()
     gmm.split_data()
-    gmm.plot(0, 0, 0, 1)
+    gmm.fit_aic(0, 0, 1, 1)
