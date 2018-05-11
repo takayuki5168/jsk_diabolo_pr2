@@ -49,7 +49,10 @@ class CalcGMM:
         
     def load_data(self):
         log_files = ['../log/log-by-logger/log-by-loggerpy0.log',
-             '../log/log-by-logger/log-by-loggerpy1.log']
+                     '../log/log-by-logger/log-by-loggerpy1.log',
+                     '../log/log-by-logger/log-by-loggerpy2.log',
+                     '../log/log-by-logger/log-by-loggerpy3.log',
+                     '../log/log-by-logger/log-by-loggerpy4.log']
 
         self.state_data_num = 0
         for log_file in log_files:
@@ -152,7 +155,7 @@ class CalcGMM:
                     continue
                 mean = self.inputs_gmm_list[i][ip][ip_][iy][iy_].means_
                 cov = self.inputs_gmm_list[i][ip][ip_][iy][iy_]._get_covars()
-                print mean, cov
+                #print mean, cov
                 X_pred = np.linspace(self.min_inputs[i], self.max_inputs[i], 1000)
                 Y_pred = self.gauss(X_pred, float(mean[0]), float(cov[0][0])) # TODO cov
                 ax[i].plot(X_pred, Y_pred)
@@ -223,7 +226,7 @@ if __name__ == '__main__':
     
     gmm = CalcGMM()
     load_data_flag = True
-    plot_flag = False
+    plot_flag = True
     load_model_flag = False
     juggle_flag = True
 
@@ -236,10 +239,11 @@ if __name__ == '__main__':
             for j in range(gmm.num_of_split):
                 for k in range(gmm.num_of_split):
                     for l in range(gmm.num_of_split):
+                        print 'p:' + str(i) + ' p_:' + str(j) + ' y:' + str(k) + ' y_:' + str(l)
                         gmm.fit_aic(i, j, k, l, plot_flag)
                         
         gmm.save_model()
-        
+
     # load model
     if load_model_flag:
         gmm.load_model()

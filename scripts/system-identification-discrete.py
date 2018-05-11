@@ -4,7 +4,8 @@ import random
 LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
              '../log/log-by-logger/log-by-loggerpy1.log',
              '../log/log-by-logger/log-by-loggerpy2.log',
-             '../log/log-by-logger/log-by-loggerpy3.log']
+             '../log/log-by-logger/log-by-loggerpy3.log',
+             '../log/log-by-logger/log-by-loggerpy4.log']
 
 # PAST_INPUT_NUM_ shoud be 1 because of using state feedback of ModernControl
 def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
@@ -135,7 +136,7 @@ flag = 0
 
 if flag == 0:
     # test once
-    fit(0, 1, True, 1, 2)
+    fit(4, 1, True, 2, 1)
     
 elif flag == 1:
     # test some cases
