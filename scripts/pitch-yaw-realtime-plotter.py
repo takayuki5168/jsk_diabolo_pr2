@@ -9,9 +9,6 @@ from time import sleep
 import sys, signal
 import math
 
-def sigIntHandler(signal, frame):
-    sys.exit(0)
-    
 class PitchYawPlotter:
     def __init__(self):
         self.now_pitch = 0
@@ -95,7 +92,7 @@ class PitchYawPlotter:
             plt.pause(0.01)
             
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, sigIntHandler)
-
+    signal.signal(signal.SIGINT, lambda signal, frame: sys.exit(0))
+    
     plotter = PitchYawPlotter()
     plotter.plot()

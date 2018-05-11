@@ -1,12 +1,15 @@
-# -*- coding: utf-8 -*-
+import rospy
+from std_msgs.msg import Float64
+
 import matplotlib.pyplot as plt
 import numpy as np
-import signal, sys
 from sklearn.mixture import GMM
+import math
 import itertools
 
-def sigIntHandler(signal, frame):
-    sys.exit(0)
+import signal, sys
+import time
+
 
 class CalcGMM:
     def __init__(self):
@@ -24,6 +27,23 @@ class CalcGMM:
         
         self.inputs_list = [[[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
         self.inputs_gmm_list = [[[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
+
+        # subscriber
+        rospy.init_node('gmm', anonymous=True)
+        rospy.Subscriber("sample_pcl/diabolo/pitch", Float64, self.callbackForPitch)
+        rospy.Subscriber("sample_pcl/diabolo/yaw", Float64, self.callbackForYaw)
+        self.now_states = [0, 0]
+
+        # publisher
+        self.pub_arm = rospy.Publisher('calc_gmm/diabolo/arm', Float64, queue_size=10)
+        self.pub_base = rospy.Publisher('calc_gmm/diabolo/base', Float64, queue_size=10)
+        self.next_inputs = [0, 0]
+
+    def callbackForPitch(self, data):
+        self.now_states[0] = data.data
+        
+    def callbackForYaw(self, data):
+        self.now_states[1] = data.data
         
     def load_data(self):
         log_files = ['../log/log-by-logger/log-by-loggerpy0.log',
@@ -107,6 +127,7 @@ class CalcGMM:
                 self.inputs_list[j][idxs[0][0]][idxs[0][1]][idxs[1][0]][idxs[1][1]].append(self.inputs[j][i])
 
     def fit_aic(self, ip, ip_, iy, iy_, plot_flag=True, max_gm_num=1): # TODO increase max_gm_num
+        # fit GMM by AIC
         for i in range(self.input_dim):
             COVARIANCE_TYPES = ['spherical', 'tied', 'diag', 'full']
             args = list(itertools.product(COVARIANCE_TYPES, range(1, max_gm_num + 1)))
@@ -118,8 +139,11 @@ class CalcGMM:
                 models[j] = GMM(n, covariance_type=ctype)
                 models[j].fit(X_raw)
             aic = np.array([m.aic(X_raw) for m in models])
-            self.inputs_gmm_list[i][ip][ip_][iy][iy_] = models[np.argmin(aic)]
-            
+            self.inputs_gmm_list[i][ip][ip_][iy][iy_] = models[np.argmin(aic)] # TODO not substitude, but append
+
+        print self.inputs_gmm_list[0][ip][ip_][iy][iy_]
+        
+        # plot
         if plot_flag:
             fig = plt.figure()
             ax = []
@@ -129,22 +153,88 @@ class CalcGMM:
             for i in range(self.input_dim):
                 ax[i].set_title(self.input_name[i])
                 ax[i].set_xlim(self.min_inputs[i], self.max_inputs[i])
-                ax[i].hist(np.array(self.inputs_list[i][ip][ip_][iy][iy_]), bins=30)
-                f = lambda x : np.exp(self.inputs_gmm_list[i][ip][ip_][iy][iy_].score(x))
+                ax[i].hist(np.array(self.inputs_list[i][ip][ip_][iy][iy_]), normed=True)
+                mean = self.inputs_gmm_list[i][ip][ip_][iy][iy_].means_
+                cov = self.inputs_gmm_list[i][ip][ip_][iy][iy_]._get_covars()
                 X_pred = np.linspace(self.min_inputs[i], self.max_inputs[i], 1000)
-                Y_pred = np.vectorize(f)(X_pred)
+                Y_pred = self.gauss(X_pred, float(mean[0]), float(cov[0][0])) # TODO cov
                 ax[i].plot(X_pred, Y_pred)
                 
             plt.show()
 
+    def save_model(self, log_name='../log/gmm/gmm.log'):
+        with open(log_name, 'w') as f:
+            # write meta data
+            f.write(str(self.input_dim) + ' '
+                    + str(self.state_dim) + ' '
+                    + str(self.past_state_num) + ' ')
+            for i in range(self.input_dim):
+                f.write(str(self.input_name[i]) + ' ')
+
+            # write content
+    
+    def load_model(self, log_name='../log/gmm/gmm.log'):
+        pass
+
+    def realtime_act(self):
+        while True:
+            self.update_gmm()
+            self.calc_next_input()
+            self.pulish()
+            time.sleep(0.01)
+
+    def update_gmm(self):
+        pass
+    
+    def calc_next_input(self):
+        
+        pass
+    
+    def publish(self):
+        print self.next_inputs[0], self.next_inputs[1]
+        pub_arm.publish(self.next_inputs[0])
+        pub_base.publish(self.next_inputs[1])        
+
+    @staticmethod
+    def gauss(X, mean, cov):
+        Y = []
+        for x in X:
+            a = 1. / ((2. * math.pi * cov)**(0.5))
+            b = -0.5 * (x - mean)**2 / cov
+            Y.append(a * math.exp(b))
+        return np.array(Y)
+    
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, sigIntHandler)
-                    
+    signal.signal(signal.SIGINT, lambda signal, frame: sys.exit(0))
+    
     gmm = CalcGMM()
-    gmm.load_data()
-    gmm.split_data()
-    for i in range(gmm.num_of_split):
-        for j in range(gmm.num_of_split):
-            for k in range(gmm.num_of_split):
-                for l in range(gmm.num_of_split):
-                    gmm.fit_aic(i, j, k, l)
+    load_data_flag = True
+    load_model_flag = False
+    juggle_flag = False
+    plot_flag = True
+
+    # load data from log file
+    if load_data_flag:
+        gmm.load_data()
+        gmm.split_data()
+
+        gmm.fit_aic(0, 0, 0, 0, plot_flag)
+        '''
+        for i in range(gmm.num_of_split):
+            for j in range(gmm.num_of_split):
+                for k in range(gmm.num_of_split):
+                    for l in range(gmm.num_of_split):
+                        gmm.fit_aic(i, j, k, l, plot_flag)
+        '''
+                        
+        gmm.save_model()
+        
+    # load model
+    if load_model_flag:
+        gmm.load_model()
+        gmm.save_model()
+
+    # subscribe states and publish inputs
+    if juggle_flag:
+        gmm.realtime_act()
+
