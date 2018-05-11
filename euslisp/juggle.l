@@ -255,12 +255,19 @@
      )
 
    (progn ;; yaw
-     (if (eq teach t)
+     (if (eq teach t) ;; when teach
 	 (progn
 	   (setq *joy-base-input* (elt *joy* 0))
 	   (setq *diabolo-yaw* (* *joy-base-input* 30))
 	   )
-       )     
+       (progn
+	 (if (eq gmm t) ;; when gmm
+	     (progn
+	       (setq *diabolo-yaw* (* (/ (* *gmm-input-base* 180) 3.14) 100)) ;;TODOTODO   magic number 100
+	       )
+	   )
+	 )
+       )    
      ;; 外れ値除去
      (if (> *diabolo-yaw* 60)
 	 (setq *diabolo-yaw* 0))
