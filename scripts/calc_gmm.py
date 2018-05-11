@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import signal, sys
-
 from sklearn.mixture import GMM
 import itertools
 
@@ -11,26 +10,20 @@ def sigIntHandler(signal, frame):
 
 class CalcGMM:
     def __init__(self):
-        self.min_states = [0, 0, 0, 0]   # pitch, pitch_, yaw, yaw_
-        self.max_states = [5, 15, 5, 5]   # pitch, pitch_, yaw, yaw_
-
-        self.arms = []
-        self.bases = []
+        self.input_dim = 2
+        self.state_dim = 2
+        self.past_state_num = 2
+        self.num_of_split = 2 # FIX ME
+        self.input_name = ['arm', 'base'] # FIX ME
         
-        self.pitchs = []
-        self.pitchs_ = []
-        self.yaws = []
-        self.yaws_ = []
+        self.inputs = [[] for i in range(self.input_dim)]
+        self.states = [[[] for i in range(self.past_state_num)] for i in range(self.state_dim)]
         
-        self.min_inputs = [1000, 1000]
-        self.max_inputs= [-1000, -1000]
-
-        self.num_of_split = 2
+        self.min_inputs = [1000 for i in range(self.input_dim)]
+        self.max_inputs= [-1000 for i in range(self.input_dim)]
         
-        self.arm_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]
-        self.base_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]
-        self.arm_gmm_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]
-        self.base_gmm_list = [[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)]                
+        self.inputs_list = [[[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
+        self.inputs_gmm_list = [[[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
         
     def load_data(self):
         log_files = ['../log/log-by-logger/log-by-loggerpy0.log',
@@ -38,12 +31,12 @@ class CalcGMM:
              '../log/log-by-logger/log-by-loggerpy2.log',
              '../log/log-by-logger/log-by-loggerpy3.log',
              '../log/log-by-logger/log-by-loggerpy4.log']        
-
+        self.state_data_num = 0
         for log_file in log_files:
           pitch = 0
           yaw = 0
           odom_w = 0
-          cnt = 0  
+          cnt = 0
           with open(log_file) as f:
             for l in f.readlines():
                 w = l.split(' ')
@@ -68,12 +61,14 @@ class CalcGMM:
                     continue
 
                 # store pitch, pitch_, yaw, yaw_, arm, base
-                self.pitchs.append(pitch)
-                self.pitchs_.append(pitch_)
-                self.yaws.append(yaw)
-                self.yaws_.append(yaw_)
-                self.arms.append(arm)
-                self.bases.append(base)
+                self.states[0][0].append(pitch)
+                self.states[0][1].append(pitch_)
+                self.states[1][0].append(yaw)
+                self.states[1][1].append(yaw_)
+                self.inputs[0].append(arm)
+                self.inputs[1].append(base)
+                
+                self.state_data_num += 1
 
                 # calc min, max of arm and base
                 if self.min_inputs[0] > arm:
@@ -87,95 +82,59 @@ class CalcGMM:
 
     def split_data(self):                   
         # calc borders
-        sorted_pitchs = sorted(self.pitchs)
-        sorted_pitchs_ = sorted(self.pitchs_)
-        sorted_yaws = sorted(self.yaws)
-        sorted_yaws_ = sorted(self.yaws_)
-        borders_pitch = []
-        borders_pitch_ = []
-        borders_yaw = []
-        borders_yaw_ = []
-        for i in range(self.num_of_split - 1):
-            borders_pitch.append(sorted_pitchs[int(1.0 * (i + 1) / self.num_of_split * len(self.pitchs))])
-            borders_pitch_.append(sorted_pitchs_[int(1.0 * (i + 1) / self.num_of_split * len(self.pitchs_))])
-            borders_yaw.append(sorted_yaws[int(1.0 * (i + 1) / self.num_of_split * len(self.yaws))])
-            borders_yaw_.append(sorted_yaws_[int(1.0 * (i + 1) / self.num_of_split * len(self.yaws_))])
-        
-        # split data
-        for i in range(len(self.pitchs)):
-            pitch = self.pitchs[i]
-            pitch_ = self.pitchs_[i]
-            yaw = self.yaws[i]
-            yaw_ = self.yaws_[i]
-            arm = self.arms[i]
-            base = self.bases[i]
-
-            idx_pitch = self.num_of_split - 1
-            idx_pitch_ = self.num_of_split - 1
-            idx_yaw = self.num_of_split - 1
-            idx_yaw_ = self.num_of_split - 1
-            for j in range(self.num_of_split - 1):
-                if pitch < borders_pitch[j]:
-                    idx_pitch = j
-                    break
-            for j in range(self.num_of_split - 1):
-                if pitch_ < borders_pitch_[j]:
-                    idx_pitch_ = j
-                    break
-            for j in range(self.num_of_split - 1):
-                if yaw < borders_yaw[j]:
-                    idx_yaw = j
-                    break
-            for j in range(self.num_of_split - 1):
-                if yaw_ < borders_yaw_[j]:
-                    idx_yaw_ = j
-                    break
+        sorted_states = [[[] for i in range(self.state_dim)] for i in range(self.past_state_num)]
+        borders_states = [[[] for i in range(self.state_dim)] for i in range(self.past_state_num)]        
+        for i in range(self.state_dim):
+            for j in range(self.past_state_num):
+                sorted_states[i][j] = sorted(self.states[i][j])
                 
-            self.arm_list[idx_pitch][idx_pitch_][idx_yaw][idx_yaw_].append(arm)
-            self.base_list[idx_pitch][idx_pitch_][idx_yaw][idx_yaw_].append(base)
+        for i in range(self.num_of_split - 1):
+            for j in range(self.state_dim):
+                for k in range(self.past_state_num):
+                    borders_states[j][k].append(sorted_states[j][k][int(1.0 * (i + 1) / self.num_of_split * self.state_data_num)])
 
-    def fit_aic(self, ip, ip_, iy, iy_, max_gm_num = 5, plot_flag=True):
-        COVARIANCE_TYPES = ['spherical', 'tied', 'diag', 'full']
-        args = list(itertools.product(COVARIANCE_TYPES, range(1, max_gm_num + 1)))
-        models = np.zeros(len(args), dtype=object)
-        
-        X = np.array([[i] for i in self.arm_list[ip][ip_][iy][iy_]])
-        for i, (ctype, n) in enumerate(args):
-            models[i] = GMM(n, covariance_type=ctype)
-            models[i].fit(X)
-        aic = np.array([m.aic(X) for m in models])
-        self.arm_gmm_list[ip][ip_][iy][iy_] = models[np.argmin(aic)]
-        
-        X = np.array([[i] for i in self.base_list[ip][ip_][iy][iy_]])
-        for i, (ctype, n) in enumerate(args):
-            models[i] = GMM(n, covariance_type=ctype)
-            models[i].fit(X)
-        aic = np.array([m.aic(X) for m in models])
-        self.base_gmm_list[ip][ip_][iy][iy_] = models[np.argmin(aic)]
+        # split data
+        for i in range(self.state_data_num):
+            for j in range(self.input_dim):
+                idxs = [[self.num_of_split - 1 for ii in range(self.state_dim)] for ii in range(self.past_state_num)]
+                for k in range(self.state_dim):
+                    for l in range(self.past_state_num):
+                        s = self.states[k][l][i]
+                        for m in range(self.num_of_split - 1): # search border
+                            if s < borders_states[k][l][m]:
+                                idxs[k][l] = m
+                                break
+                self.inputs_list[j][idxs[0][0]][idxs[0][1]][idxs[1][0]][idxs[1][1]].append(self.inputs[j][i])
 
+    def fit_aic(self, ip, ip_, iy, iy_, plot_flag=True, max_gm_num=1): # TODO increase max_gm_num
+        for i in range(self.input_dim):
+            COVARIANCE_TYPES = ['spherical', 'tied', 'diag', 'full']
+            args = list(itertools.product(COVARIANCE_TYPES, range(1, max_gm_num + 1)))
+            models = np.zeros(len(args), dtype=object)
+
+            X_raw = np.array([[j] for j in self.inputs_list[i][ip][ip_][iy][iy_]])
+            # X_raw = np.array([[i] for i in [0.6] * 8 + [0.8] * 10])
+            for j, (ctype, n) in enumerate(args):
+                models[j] = GMM(n, covariance_type=ctype)
+                models[j].fit(X_raw)
+            aic = np.array([m.aic(X_raw) for m in models])
+            self.inputs_gmm_list[i][ip][ip_][iy][iy_] = models[np.argmin(aic)]
+            
         if plot_flag:
             fig = plt.figure()
-            ax1 = fig.add_subplot(211)
-            ax2 = fig.add_subplot(212)
-            
-            ax1.set_title('arm')
-            ax1.set_xlim(self.min_inputs[0], self.max_inputs[0])
-            ax1.hist(np.array(self.arm_list[ip][ip_][iy][iy_]), bins=50)
-            X_raw = np.array([[i] for i in self.arm_list[ip][ip_][iy][iy_]])
-            f = lambda x : np.exp(self.arm_gmm_list[ip][ip_][iy][iy_].score(x))        
-            X_pred = np.linspace(self.min_inputs[0], self.max_inputs[0], 1000)
-            Y_pred = np.vectorize(f)(X_pred)
-            ax1.plot(X_pred, Y_pred)        
-            
-            ax2.set_title('base')
-            ax2.set_xlim(self.min_inputs[1], self.max_inputs[1])
-            ax2.hist(np.array(self.base_list[ip][ip_][iy][iy_]), bins=50)
-            X_raw = np.array([[i] for i in self.base_list[ip][ip_][iy][iy_]])
-            f = lambda x : np.exp(self.base_gmm_list[ip][ip_][iy][iy_].score(x))        
-            X_pred = np.linspace(self.min_inputs[1], self.max_inputs[1], 1000)
-            Y_pred = np.vectorize(f)(X_pred)
-            ax2.plot(X_pred, Y_pred)        
-            
+            ax = []
+            ax.append(fig.add_subplot(211))
+            ax.append(fig.add_subplot(212))
+
+            for i in range(self.input_dim):
+                ax[i].set_title(self.input_name[i])
+                ax[i].set_xlim(self.min_inputs[i], self.max_inputs[i])
+                ax[i].hist(np.array(self.inputs_list[i][ip][ip_][iy][iy_]), bins=30)
+                f = lambda x : np.exp(self.inputs_gmm_list[i][ip][ip_][iy][iy_].score(x))
+                X_pred = np.linspace(self.min_inputs[i], self.max_inputs[i], 1000)
+                Y_pred = np.vectorize(f)(X_pred)
+                ax[i].plot(X_pred, Y_pred)
+                
             plt.show()
 
 if __name__ == '__main__':
@@ -184,4 +143,8 @@ if __name__ == '__main__':
     gmm = CalcGMM()
     gmm.load_data()
     gmm.split_data()
-    gmm.fit_aic(0, 0, 1, 1)
+    for i in range(gmm.num_of_split):
+        for j in range(gmm.num_of_split):
+            for k in range(gmm.num_of_split):
+                for l in range(gmm.num_of_split):
+                    gmm.fit_aic(i, j, k, l)
