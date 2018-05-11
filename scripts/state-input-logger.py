@@ -1,8 +1,13 @@
+#!/usr/bin/python
 import rospy
 import tf2_ros
 from nav_msgs.msg import Odometry
 from time import sleep
 from std_msgs.msg import Float64
+import tf
+from geometry_msgs.msg import Vector3
+import math
+
 
 class Logger:
     def __init__(self):
@@ -15,10 +20,16 @@ class Logger:
         self.state_yaw = 0
         self.input_arm = 0
         self.input_base = 0
+        self.vec_z = 0
 
         rospy.Subscriber("/sample_pcl/diabolo/pitch", Float64, self.callbackPitch)
         rospy.Subscriber("/sample_pcl/diabolo/yaw", Float64, self.callbackYaw)
         rospy.Subscriber("/base_odometry/odom", Odometry, self.callbackOdom)
+
+    @staticmethod
+    def quaternion_to_euler(quaternion):
+        e = tf.transformations.euler_from_quaternion((quaternion.x, quaternion.y, quaternion.z, quaternion.w))
+        return Vector3(x=e[0], y=e[1], z=e[2])
     
     def callbackPitch(self, msg):
         self.state_pitch = msg.data
@@ -27,7 +38,13 @@ class Logger:
         self.state_yaw = msg.data
     
     def callbackOdom(self, msg):
-        self.input_base = msg.pose.pose.orientation.w
+        if self.quaternion_to_euler(msg.pose.pose.orientation).z - self.vec_z > 6:
+            self.input_base = self.quaternion_to_euler(msg.pose.pose.orientation).z - self.vec_z - math.pi * 2
+        elif self.quaternion_to_euler(msg.pose.pose.orientation).z - self.vec_z < -6:
+            self.input_base = self.quaternion_to_euler(msg.pose.pose.orientation).z - self.vec_z + math.pi * 2
+        else:
+            self.input_base = self.quaternion_to_euler(msg.pose.pose.orientation).z - self.vec_z
+        self.vec_z = self.quaternion_to_euler(msg.pose.pose.orientation).z
     
     def execute(self):
         while True:

@@ -1,21 +1,24 @@
-;; rosrun
+;; launchファイル起動スクリプト
+;; start_launch.sh
 
-;; 30FPS出るpointsをpublish
-;; roslaunch relay_kinect.launch
+;;     30FPS出るpointsをpublish
+;;     roslaunch relay_kinect.launch
 
-;; Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;; rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint
+;;     Kinectの座標を変換して/tf_transform_cloud/outputにpublish
+;;     rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint
 
-;; ディアボロの傾きを計算
-;; rosrun pr2_juggle sample_pcl ~input:=/tf_transform_cloud/output
+;;     ディアボロの傾きを計算
+;;     rosrun pr2_juggle sample_pcl ~input:=/tf_transform_cloud/output
 
 ;; システム同定のためのロガー
-;; python logger.py
+;; python state-input-logger.py
+
 
 ;; sudo service chrony restart
 
 ;; HSIフィルタを使いたい時
 ;; rosrun jsk_pcl_ros hsi_color_filter ~input:=/kinect_head/depth_registered/quater/throttled/points
+
 
 (defun init ()
   (setq *diabolo-pitch* 0)
