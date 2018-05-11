@@ -16,7 +16,7 @@ class CalcGMM:
         self.input_dim = 2
         self.state_dim = 2
         self.past_state_num = 2
-        self.num_of_split = 3
+        self.num_of_split = 4
         self.input_name = ['arm', 'base']
         
         self.inputs = [[] for i in range(self.input_dim)]
@@ -39,13 +39,13 @@ class CalcGMM:
         self.pub_base = rospy.Publisher('calc_gmm/diabolo/base', Float64, queue_size=10)
         self.next_inputs = [0, 0] # FIX
 
-    def callbackForPitch(self, data):
-        self.now_states[0][1] = data.data - self.now_states[0][0]
-        self.now_states[0][0] = data.data
+    def callbackForPitch(self, msg):
+        self.now_states[0][1] = msg.data - self.now_states[0][0]
+        self.now_states[0][0] = msg.data
         
-    def callbackForYaw(self, data):
-        self.now_states[1][1] = data.data - self.now_states[1][0]        
-        self.now_states[1] = data.data
+    def callbackForYaw(self, msg):
+        self.now_states[1][1] = msg.data - self.now_states[1][0]        
+        self.now_states[1][0] = msg.data
         
     def load_data(self):
         log_files = ['../log/log-by-logger/log-by-loggerpy0.log',
@@ -65,8 +65,8 @@ class CalcGMM:
                 past_pitch = pitch
                 past_yaw = yaw
                 
-                arm = float(w[0]) * 1
-                base = float(w[1]) * 1
+                arm = float(w[0])
+                base = float(w[1])
                 pitch = float(w[2])
                 yaw = float(w[3])
                 pitch_ = pitch - past_pitch
@@ -129,8 +129,6 @@ class CalcGMM:
             models = np.zeros(len(args), dtype=object)
 
             X_raw = np.array([[j] for j in self.inputs_list[i][ip][ip_][iy][iy_]])
-            print X_raw
-            print len(X_raw)
             if len(X_raw) < 2:
                 self.inputs_gmm_list[i][ip][ip_][iy][iy_] = None
                 continue
@@ -149,7 +147,6 @@ class CalcGMM:
                 ax[i].set_title(self.input_name[i])
                 ax[i].set_xlim(self.min_inputs[i], self.max_inputs[i])
                 ax[i].hist(np.array(self.inputs_list[i][ip][ip_][iy][iy_]), normed=True)
-                print min(self.inputs_list[i][ip][ip_][iy][iy_]), max(self.inputs_list[i][ip][ip_][iy][iy_])
                 
                 if self.inputs_gmm_list[i][ip][ip_][iy][iy_] == None:
                     continue
@@ -201,12 +198,14 @@ class CalcGMM:
     
     def calc_next_inputs(self, ip, ip_, iy, iy_):
         for i in range(self.input_dim):
+            if self.inputs_gmm_list[i][ip][ip_][iy][iy_] == None:
+                continue
             mean = self.inputs_gmm_list[i][ip][ip_][iy][iy_].means_
             cov = self.inputs_gmm_list[i][ip][ip_][iy][iy_]._get_covars()
             self.next_inputs[i] = np.random.normal(mean, cov, 1)
     
     def publish(self):
-        #print self.next_inputs[0], self.next_inputs[1]
+        print self.next_inputs[0], self.next_inputs[1]
         self.pub_arm.publish(self.next_inputs[0])
         self.pub_base.publish(self.next_inputs[1])        
 
@@ -224,7 +223,7 @@ if __name__ == '__main__':
     
     gmm = CalcGMM()
     load_data_flag = True
-    plot_flag = True
+    plot_flag = False
     load_model_flag = False
     juggle_flag = True
 

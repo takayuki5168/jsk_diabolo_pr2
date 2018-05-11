@@ -22,7 +22,9 @@
 
 (defun init ()
   (setq *diabolo-pitch* 0)
-  (setq *diabolo-yaw* 0)  
+  (setq *diabolo-yaw* 0)
+  (setq *gmm-input-arm* 0)
+  (setq *gmm-input-base* 0)
   
   (ros::load-ros-manifest "roseus")
   (ros::roseus "listener")
@@ -36,6 +38,12 @@
   ;; subscribe joy
   (ros::subscribe "joy" sensor_msgs::Joy
 		  #'(lambda (msg) (setq *joy* (send msg :axes))))
+
+  ;; subscribe gmm
+  (ros::subscribe "calc_gmm/diabolo/arm" std_msgs::float64
+		  #'(lambda (msg) (setq *gmm-input-arm* (send msg :data))))
+  (ros::subscribe "calc_gmm/diabolo/base" std_msgs::float64
+		  #'(lambda (msg) (setq *gmm-input-base* (send msg :data))))
   
   
   (load "package://pr2eus/pr2-interface.l")
@@ -182,7 +190,7 @@
   (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
   )
 
-(defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t) &key (teach nil))
+(defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t) &key (teach nil) (gmm nil))
   (if (eq roll-valid t)
       (progn
 	(send *ri* :angle-vector *roll-1-pos* 5000)
@@ -209,12 +217,23 @@
    
    (progn ;; pitch
      ;; P制御
-     (if (eq teach t)
+     (if (eq teach t) ;; when teach
 	 (progn
 	   (setq *joy-arm-input* (elt *joy* 3))
 	   (setq *control-x-diff* (* *joy-arm-input* 100))
 	   )
-	 (setq *control-x-diff* (* *diabolo-pitch* 10)) ;; TODO params
+       (progn
+	 (if (eq gmm t) ;; when gmm
+	     (progn
+	       (setq *control-x-diff* (- (* *gmm-input-arm* 1000) 700))g
+	       (print *gmm-input-arm*)
+	       (print *control-x-diff*)
+	       )
+	   (progn
+	     (setq *control-x-diff* (* *diabolo-pitch* 10)) ;; when controller TODO params
+	     )
+	   )
+	 )
        )
 
      ;; 最大最小制限
