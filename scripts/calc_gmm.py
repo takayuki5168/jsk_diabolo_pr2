@@ -98,6 +98,8 @@ class CalcGMM:
                     
         return states, inputs, state_data_num, min_inputs, max_inputs
 
+    def getGMMList(self):
+        return [[[[[object for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]            
     # calc borders of states map
     def calc_borders(self, states, state_data_num):
         sorted_states = [[[] for i in range(self.state_dim)] for i in range(self.past_state_num)]
@@ -135,7 +137,8 @@ class CalcGMM:
 
     def fit_aic(self, inputs_list, ip, ip_, iy, iy_, max_gm_num=1): # TODO increase max_gm_num
         # TODO replace every loop
-        inputs_gmm_list = [[[[[object for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
+        #inputs_gmm_list = [[[[[object for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
+        inputs_gmm = [[] for i in range(self.input_dim)]
         
         # fit GMM by AIC
         for i in range(self.input_dim):
@@ -152,10 +155,10 @@ class CalcGMM:
                 models[j].fit(X_raw)
             aic = np.array([m.aic(X_raw) for m in models])
             print i, ip, ip_, iy, iy_
-            print models[np.argmin(aic)]
-            inputs_gmm_list[i][ip][ip_][iy][iy_] = models[np.argmin(aic)] # TODO not substitude, but append
+            #inputs_gmm_list[i][ip][ip_][iy][iy_] = models[np.argmin(aic)] # TODO not substitude, but append
+            inputs_gmm[i] = models[np.argmin(aic)] # TODO not substitude, but append
             
-        return inputs_gmm_list
+        return inputs_gmm
     
     def plot_gmm(self, inputs_list, inputs_gmm_list, min_inpus, max_inputs, ip, ip_, iy, iy_):
             fig = plt.figure()
@@ -226,7 +229,6 @@ class CalcGMM:
             if inputs_gmm_list[i][ip][ip_][iy][iy_] == None:
                 continue
             print i, ip, ip_, iy, iy_
-            print inputs_gmm_list[i][ip][ip_][iy][iy_]
             mean = inputs_gmm_list[i][ip][ip_][iy][iy_].means_
             cov = inputs_gmm_list[i][ip][ip_][iy][iy_]._get_covars()
             next_inputs[i] = np.random.normal(mean, cov, 1)
@@ -258,6 +260,7 @@ if __name__ == '__main__':
 
     # load data from log file, fit and save
     if load_data_flag:
+        inputs_gmm_list = calc_gmm.getGMMList() #[[[[[object for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]        
         states, inputs, state_data_num, min_inputs, max_inputs= calc_gmm.load_data()
         borders_states = calc_gmm.calc_borders(states, state_data_num)
         inputs_list = calc_gmm.split_data(states, inputs, borders_states)
@@ -267,7 +270,9 @@ if __name__ == '__main__':
                 for iy in range(calc_gmm.num_of_split):
                     for iy_ in range(calc_gmm.num_of_split):
                         print 'p:' + str(ip) + ' p_:' + str(ip_) + ' y:' + str(iy) + ' y_:' + str(iy_)
-                        inputs_gmm_list = calc_gmm.fit_aic(inputs_list, ip, ip_, iy, iy_)
+                        inputs_gmm = calc_gmm.fit_aic(inputs_list, ip, ip_, iy, iy_)
+                        for i in range(len(inputs_list)):
+                            inputs_gmm_list[i][ip][ip_][iy][iy_] = inputs_gmm[i]
                         if plot_flag:
                             calc_gmm.plot_gmm(inputs_list, inputs_gmm_list, min_inputs, max_inputs, ip, ip_, iy, iy_)
                         
