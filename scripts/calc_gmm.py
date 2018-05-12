@@ -136,8 +136,6 @@ class CalcGMM:
         return inputs_list
 
     def fit_aic(self, inputs_list, ip, ip_, iy, iy_, max_gm_num=1): # TODO increase max_gm_num
-        # TODO replace every loop
-        #inputs_gmm_list = [[[[[object for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
         inputs_gmm = [[] for i in range(self.input_dim)]
         
         # fit GMM by AIC
@@ -155,7 +153,6 @@ class CalcGMM:
                 models[j].fit(X_raw)
             aic = np.array([m.aic(X_raw) for m in models])
             print i, ip, ip_, iy, iy_
-            #inputs_gmm_list[i][ip][ip_][iy][iy_] = models[np.argmin(aic)] # TODO not substitude, but append
             inputs_gmm[i] = models[np.argmin(aic)] # TODO not substitude, but append
             
         return inputs_gmm
