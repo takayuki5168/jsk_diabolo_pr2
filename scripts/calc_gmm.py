@@ -137,7 +137,7 @@ class CalcGMM:
         return inputs_list, rewards_xy_list
 
     def fit_aic(self, inputs_list, max_gm_num=1): # TODO increase max_gm_num
-        inputs_gmm_list = [[[[[object for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]        
+        inputs_gmm_list = [[[[[[[]] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]        
         COVARIANCE_TYPES = ['spherical', 'tied', 'diag', 'full']        
         
         # fit GMM by AIC
@@ -153,14 +153,15 @@ class CalcGMM:
                 
                             X_raw = np.array([[ii] for ii in inputs_list[i][ip][ip_][iy][iy_]])
                             if len(X_raw) < 2:
-                                inputs_gmm_list[i][ip][ip_][iy][iy_] = None # TODO
+                                inputs_gmm_list[i][ip][ip_][iy][iy_][0] = None # TODO
                                 continue
                             for j, (ctype, n) in enumerate(args):
                                 models[j] = GMM(n, covariance_type=ctype, tol=1e-10, min_covar=1e-10)
                                 models[j].fit(X_raw)
                             aic = np.array([m.aic(X_raw) for m in models])
-                            
-                            inputs_gmm_list[i][ip][ip_][iy][iy_] = models[np.argmin(aic)] # TODO not substitude, but append
+
+                            m = models[np.argmin(aic)] # TODO not substitude, but append                            
+                            inputs_gmm_list[i][ip][ip_][iy][iy_][0] = [m.means_, m._get_covars()]
                             
         return inputs_gmm_list
     
@@ -171,10 +172,10 @@ class CalcGMM:
                 for ip_ in range(self.num_of_split):
                     for iy in range(self.num_of_split):
                         for iy_ in range(self.num_of_split):
-                            if inputs_gmm_list[i][ip][ip_][iy][iy_] == None:
+                            if inputs_gmm_list[i][ip][ip_][iy][iy_][0] == None:
                                 continue
-                            mean = inputs_gmm_list[i][ip][ip_][iy][iy_].means_
-                            cov = inputs_gmm_list[i][ip][ip_][iy][iy_]._get_covars()
+                            mean = inputs_gmm_list[i][ip][ip_][iy][iy_][0][0]
+                            cov = inputs_gmm_list[i][ip][ip_][iy][iy_][0][1]
                             for reward in rewards_xy_list[i][ip][ip_][iy][iy_]:
                                 x = reward[0]
                                 r = reward[1]
@@ -192,8 +193,8 @@ class CalcGMM:
                         fig = plt.figure()
                         ax = []
                         for i in range(self.input_dim):
-                            ax.append(fig.add_subplot(len(inputs_list), 2, i * 2 + 1))
-                            ax.append(fig.add_subplot(len(inputs_list), 2, i * 2 + 2))                
+                            for j in range(len(inputs_lists)):
+                                ax.append(fig.add_subplot(len(inputs_lists), 2, i + 2 * j + 1))
                 
                         for i in range(len(inputs_lists)):
                             for j in range(self.input_dim):
@@ -202,18 +203,23 @@ class CalcGMM:
                                 ax[i * 2 + j].set_xlim(min_inputs[i][j], max_inputs[i][j])
                                 ax[i * 2 + j].hist(np.array(inputs_lists[i][j][ip][ip_][iy][iy_]), normed=True)
                                 
-                                if inputs_gmm_lists[i][j][ip][ip_][iy][iy_] == None:
+                                if inputs_gmm_lists[i][j][ip][ip_][iy][iy_][0] == None:
                                     continue
 
                                 # plot GMM
-                                mean = inputs_gmm_lists[i][j][ip][ip_][iy][iy_].means_
-                                cov = inputs_gmm_lists[i][j][ip][ip_][iy][iy_]._get_covars()
+                                mean = inputs_gmm_lists[i][j][ip][ip_][iy][iy_][0][0]
+                                cov = inputs_gmm_lists[i][j][ip][ip_][iy][iy_][0][1]
                                 #print mean, cov
                                 X_pred = np.linspace(min_inputs[i][j], max_inputs[i][j], 1000)
                                 Y_pred = self.gauss(X_pred, float(mean[0]), float(cov[0][0])) # TODO cov
                                 ax[i * 2 + j].plot(X_pred, Y_pred)
-                    
+
+                                # plot zero line
+                                ax[i * 2 + j].plot(np.array([min_inputs[i][j], max_inputs[i][j]]), np.array([0, 0]))               
+                                
                                 # plot reward
+                                if rewards_xy_lists[i] == False:
+                                    continue
                                 reward_x = [min_inputs[i][j] + (max_inputs[i][j] - min_inputs[i][j]) * ii / 20.0 for ii in range(20)]
                                 reward_y = [0 for ii in range(20)]
                                 cnt = [0 for ii in range(20)]
@@ -230,10 +236,9 @@ class CalcGMM:
                                     reward_y[k] = reward_y[k] / cnt[k]
                                 ax[i * 2 + j].plot(np.array(reward_x), np.array(reward_y))
                     
-                                # plot zero line
-                                ax[i * 2 + j].plot(np.array([min_inputs[i][j], max_inputs[i][j]]), np.array([0, 0]))               
                 
-                        plt.show()
+                        print 'input: ' + str(j) + ' p:' + str(ip) + ' p_:' + str(ip_) + ' y:' + str(iy) + ' y_:' + str(iy_)
+                        plt.show()                        
 
     def save_model(self, inputs_gmm_list, log_name='../log/gmm/gmm.log'):
         with open(log_name, 'w') as f:
@@ -243,11 +248,68 @@ class CalcGMM:
                     + str(self.past_state_num) + ' ')
             for i in range(self.input_dim):
                 f.write(str(self.input_name[i]) + ' ')
+            for i in range(self.input_dim):
+                f.write(str(min_inputs[i]) + ' ' + str(max_inputs[i]) + ' ')
+            f.write('\n')
 
-            # write content
-            
+            # write GMM
+            for i in range(self.input_dim):
+                for ip in range(self.num_of_split):
+                    for ip_ in range(self.num_of_split):
+                        for iy in range(self.num_of_split):
+                            for iy_ in range(self.num_of_split):
+                                mean = inputs_gmm_list[i][ip][ip_][iy][iy_][0][0]
+                                cov = inputs_gmm_list[i][ip][ip_][iy][iy_][0][1]
+                                f.write(str(float(mean[0])) + ' ' + str(float(cov[0][0])) + '\n')
+            # write raw data
+            for i in range(len(inputs[0])):
+                f.write(str(float(inputs[0][i])) + ' ' + str(float(inputs[1][i])) + ' ' + str(float(states[0][0][i])) + ' ' + str(float(states[0][1][i])) + ' ' + str(float(states[1][0][i])) + ' ' + str(float(states[1][1][i])) + '\n')
+
+
     def load_model(self, log_name='../log/gmm/gmm.log'):
-        pass
+        inputs = [[] for i in range(self.input_dim)]
+        states = [[[] for i in range(self.past_state_num)] for i in range(self.state_dim)]
+                        
+        with open(log_name, 'r') as f:
+            min_inputs = [0 for i in range(2)]
+            max_inputs = [0 for i in range(2)]
+            # read meta data
+            l = f.readline()
+            w = l.split(' ')
+            self.input_dim = int(w[0])
+            self.state_dim = int(w[1])
+            self.past_state_num = int(w[2])
+            self.input_name[0] = w[3]
+            self.input_name[1] = w[4]
+            min_inputs[0] = float(w[5])
+            max_inputs[0] = float(w[6])
+            min_inputs[1] = float(w[7])
+            max_inputs[1] = float(w[8])
+
+            # read GMM
+            inputs_gmm_list = [[[[[[[]] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
+            for i in range(self.input_dim):
+                for ip in range(self.num_of_split):
+                    for ip_ in range(self.num_of_split):
+                        for iy in range(self.num_of_split):
+                            for iy_ in range(self.num_of_split):
+                                l = f.readline()
+                                w = l.split(' ')
+                                mean = [float(w[0])]
+                                cov = [[float(w[1])]]
+                                inputs_gmm_list[i][ip][ip_][iy][iy_][0] = [mean, cov]
+            state_data_num = 0
+            for l in f.readlines():
+                w = l.split(' ')
+                inputs[0].append(float(w[0]))
+                inputs[1].append(float(w[1]))
+                states[0][0].append(float(w[2]))
+                states[0][1].append(float(w[3]))
+                states[1][0].append(float(w[4]))
+                states[1][1].append(float(w[5]))
+                state_data_num += 1
+
+            return states, inputs, state_data_num, inputs_gmm_list, min_inputs, max_inputs
 
     #
     # below is for using real interface
@@ -279,11 +341,11 @@ class CalcGMM:
         next_inputs = [0, 0]
         
         for i in range(self.input_dim):
-            if inputs_gmm_list[i][ip][ip_][iy][iy_] == None:
+            if inputs_gmm_list[i][ip][ip_][iy][iy_][0] == None:
                 continue
             print i, ip, ip_, iy, iy_
-            mean = inputs_gmm_list[i][ip][ip_][iy][iy_].means_
-            cov = inputs_gmm_list[i][ip][ip_][iy][iy_]._get_covars()
+            mean = inputs_gmm_list[i][ip][ip_][iy][iy_][0][0]
+            cov = inputs_gmm_list[i][ip][ip_][iy][iy_][0][1]
             next_inputs[i] = np.random.normal(mean, cov, 1)
 
         return next_inputs
@@ -306,12 +368,12 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda signal, frame: sys.exit(0))
     
     calc_gmm = CalcGMM()
-    load_data_flag = True
-    plot_flag = True
-    load_model_flag = False
-    juggle_flag = True
+    load_data_flag = 1
+    load_model_flag = 1
+    plot_model = 1
+    juggle_flag = 0
 
-    # load data from log file, fit and plot
+    # load data from log file, fit and save
     if load_data_flag:
         # calc GMM1
         states, inputs, state_data_num, min_inputs, max_inputs= calc_gmm.load_data(['../log/log-by-logger/log-by-loggerpy0.log',
@@ -331,21 +393,28 @@ if __name__ == '__main__':
         # fit
         inputs_gmm_list = calc_gmm.fit_aic(inputs_list)
         reward_list = calc_gmm.calc_reward(inputs_gmm_list, rewards_xy_list)
-        print reward_list
+        #print reward_list
         
         inputs_gmm_list2 = calc_gmm.fit_aic(inputs_list2)
         reward_list2 = calc_gmm.calc_reward(inputs_gmm_list2, rewards_xy_list2)
-        print reward_list2        
-
-        # plot
-        if plot_flag:
-            calc_gmm.plot_gmm([inputs_list, inputs_list2], [inputs_gmm_list, inputs_gmm_list2], [rewards_xy_list, rewards_xy_list2], [min_inputs for i in range(2)], [max_inputs for i in range(2)]) 
+        #print reward_list2        
         
-        #calc_gmm.save_model(inputs_gmm_list, '../log/gmm/gmm.log')
+        calc_gmm.save_model(inputs_gmm_list, '../log/gmm/gmm.log')
 
     # load model
     if load_model_flag:
-        inputs_gmm_list = calc_gmm.load_model('../log/gmm/gmm.log')
+        states_load, inputs_load, state_data_nun_load, inputs_gmm_list_load, min_inputs_load, max_inputs_load = calc_gmm.load_model('../log/gmm/gmm.log')
+        borders_states_load = calc_gmm.calc_borders(states_load, state_data_num_load)                
+        inputs_list_load, rewards_xy_list_load = calc_gmm.split_data(states_load, inputs_load, state_data_num_load, borders_states_load)
+        
+    # plot
+    if plot_model:
+        calc_gmm.plot_gmm([inputs_list, inputs_list2], [inputs_gmm_list, inputs_gmm_list2], [rewards_xy_list, rewards_xy_list2], [min_inputs for i in range(2)], [max_inputs for i in range(2)])
+        #calc_gmm.plot_gmm([inputs_list, inputs_list2], [inputs_gmm_list, inputs_gmm_list2], [False, False], [min_inputs for i in range(2)], [max_inputs for i in range(2)])
+        #calc_gmm.plot_gmm([inputs_list], [inputs_gmm_list], False, [min_inputs for i in range(1)], [max_inputs for i in range(1)])
+    
+        #calc_gmm.plot_gmm([inputs_list, inputs_list_load], [inputs_gmm_list, inputs_gmm_list_load], False, [min_inputs_load for i in range(2)], [max_inputs_load for i in range(2)])
+        #calc_gmm.plot_gmm([inputs_list_load], [inputs_gmm_list_load], [False, False], [min_inputs_load for i in range(1)], [max_inputs_load for i in range(1)])                
 
     # subscribe states and publish inputs
     if juggle_flag:
