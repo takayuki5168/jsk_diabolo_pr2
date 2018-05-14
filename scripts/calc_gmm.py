@@ -39,18 +39,12 @@ class CalcGMM:
         self.now_states[1][0] = msg.data
 
         
-    def load_data(self):
+    def load_data(self, log_files):
         inputs = [[] for i in range(self.input_dim)]
         states = [[[] for i in range(self.past_state_num)] for i in range(self.state_dim)]
         min_inputs = [1000 for i in range(self.input_dim)]
         max_inputs = [-1000 for i in range(self.input_dim)]
         
-        log_files = ['../log/log-by-logger/log-by-loggerpy0.log',
-                     '../log/log-by-logger/log-by-loggerpy1.log',
-                     '../log/log-by-logger/log-by-loggerpy2.log',
-                     '../log/log-by-logger/log-by-loggerpy3.log',
-                     '../log/log-by-logger/log-by-loggerpy4.log']
-
         state_data_num = 0
         for log_file in log_files:
           pitch = 0
@@ -117,23 +111,28 @@ class CalcGMM:
         return borders_states
 
 
-    def split_data(self, states, inputs, borders_states):
+    def split_data(self, states, inputs, state_data_num, borders_states):
         inputs_list = [[[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
-
+        reward_list = [[[[[[] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]
+        
         # split data
         for i in range(state_data_num):
             for j in range(self.input_dim):
                 idxs = [[self.num_of_split - 1 for ii in range(self.state_dim)] for ii in range(self.past_state_num)]
+                r = 0
                 for k in range(self.state_dim):
                     for l in range(self.past_state_num):
                         s = states[k][l][i]
+                        if i != 0:
+                            r += abs(states[k][l][i - 1]) - abs(states[k][l][i]) # before - after 
                         for m in range(self.num_of_split - 1): # search border
                             if s < borders_states[k][l][m]:
                                 idxs[k][l] = m
                                 break
                 inputs_list[j][idxs[0][0]][idxs[0][1]][idxs[1][0]][idxs[1][1]].append(inputs[j][i])
+                reward_list[j][idxs[0][0]][idxs[0][1]][idxs[1][0]][idxs[1][1]].append([inputs[j][i], r])                
                 
-        return inputs_list
+        return inputs_list, reward_list
 
     def fit_aic(self, inputs_list, ip, ip_, iy, iy_, max_gm_num=1): # TODO increase max_gm_num
         inputs_gmm = [[] for i in range(self.input_dim)]
@@ -152,31 +151,40 @@ class CalcGMM:
                 models[j] = GMM(n, covariance_type=ctype, tol=1e-10, min_covar=1e-10)
                 models[j].fit(X_raw)
             aic = np.array([m.aic(X_raw) for m in models])
-            print i, ip, ip_, iy, iy_
+            print 'input:' + str(i) + ' p:' + str(ip) + ' p_:' + str(ip_) + ' y:' + str(iy) + ' y_:' + str(iy_)            
             inputs_gmm[i] = models[np.argmin(aic)] # TODO not substitude, but append
             
         return inputs_gmm
     
-    def plot_gmm(self, inputs_list, inputs_gmm_list, min_inpus, max_inputs, ip, ip_, iy, iy_):
-            fig = plt.figure()
-            ax = [fig.add_subplot(211), fig.add_subplot(212)]
+    def plot_gmm(self, inputs_list, inputs_gmm_list, reward_list, min_inputs, max_inputs, ip, ip_, iy, iy_):
+        fig = plt.figure()
+        ax = []
+        for i in range(len(inputs_list)):
+            ax.append(fig.add_subplot(len(inputs_list), 2, i * 2 + 1))
+            ax.append(fig.add_subplot(len(inputs_list), 2, i * 2 + 2))                
 
-            for i in range(self.input_dim):
-                ax[i].set_title(self.input_name[i])
-                ax[i].set_xlim(min_inputs[i], max_inputs[i])
-                ax[i].hist(np.array(inputs_list[i][ip][ip_][iy][iy_]), normed=True)
+        for i in range(len(inputs_list)):
+            for j in range(self.input_dim):
+                ax[i * 2 + j].set_title(self.input_name[j])
+                ax[i * 2 + j].set_xlim(min_inputs[i][j], max_inputs[i][j])
+                ax[i * 2 + j].hist(np.array(inputs_list[i][j][ip][ip_][iy][iy_]), normed=True)
                 
-                if inputs_gmm_list[i][ip][ip_][iy][iy_] == None:
+                if inputs_gmm_list[i][j][ip][ip_][iy][iy_] == None:
                     continue
-                mean = inputs_gmm_list[i][ip][ip_][iy][iy_].means_
-                cov = inputs_gmm_list[i][ip][ip_][iy][iy_]._get_covars()
+                mean = inputs_gmm_list[i][j][ip][ip_][iy][iy_].means_
+                cov = inputs_gmm_list[i][j][ip][ip_][iy][iy_]._get_covars()
                 #print mean, cov
-                X_pred = np.linspace(min_inputs[i], max_inputs[i], 1000)
+                X_pred = np.linspace(min_inputs[i][j], max_inputs[i][j], 1000)
                 Y_pred = self.gauss(X_pred, float(mean[0]), float(cov[0][0])) # TODO cov
-                ax[i].plot(X_pred, Y_pred)
-                
-            plt.show()
-            
+                ax[i * 2 + j].plot(X_pred, Y_pred)
+
+                # plot reward
+                reward_x = [r[0] for r in reward_list[i][j][ip][ip_][iy][iy_]]
+                reward_y = [r[1] for r in reward_list[i][j][ip][ip_][iy][iy_]]
+                ax[i * 2 + j].scatter(reward_x, reward_y)                    
+    
+        plt.show()
+        
 
     def save_model(self, inputs_gmm_list, log_name='../log/gmm/gmm.log'):
         with open(log_name, 'w') as f:
@@ -193,7 +201,7 @@ class CalcGMM:
         pass
 
     #
-    # belowe is for using real interface
+    # below is for using real interface
     #
     
     def realtime_act(self, inputs_gmm_list, borders_states):
@@ -202,7 +210,6 @@ class CalcGMM:
             self.update_gmm(ip, ip_, iy, iy_)
             next_inputs = self.calc_next_inputs(inputs_gmm_list, ip, ip_, iy, iy_)
             self.publish(next_inputs)
-            print ip, ip_, iy, iy_
             time.sleep(0.01)
             
     def calc_states_idx(self, borders_states):
@@ -251,16 +258,26 @@ if __name__ == '__main__':
     
     calc_gmm = CalcGMM()
     load_data_flag = True
-    plot_flag = False
+    plot_flag = True
     load_model_flag = False
     juggle_flag = True
 
     # load data from log file, fit and save
     if load_data_flag:
-        inputs_gmm_list = calc_gmm.getGMMList() #[[[[[object for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.num_of_split)] for i in range(self.input_dim)]        
-        states, inputs, state_data_num, min_inputs, max_inputs= calc_gmm.load_data()
+        inputs_gmm_list = calc_gmm.getGMMList()
+        states, inputs, state_data_num, min_inputs, max_inputs= calc_gmm.load_data(['../log/log-by-logger/log-by-loggerpy0.log',
+                                                                                    '../log/log-by-logger/log-by-loggerpy1.log',
+                                                                                    '../log/log-by-logger/log-by-loggerpy2.log',
+                                                                                    '../log/log-by-logger/log-by-loggerpy3.log',
+                                                                                    '../log/log-by-logger/log-by-loggerpy4.log'])
         borders_states = calc_gmm.calc_borders(states, state_data_num)
-        inputs_list = calc_gmm.split_data(states, inputs, borders_states)
+        inputs_list, reward_list = calc_gmm.split_data(states, inputs, state_data_num, borders_states)
+        
+        inputs_gmm_list2 = calc_gmm.getGMMList()        
+        states2, inputs2, state_data_num2, min_inputs2, max_inputs2= calc_gmm.load_data(['../log/log-by-logger/log-by-loggerpy0.log',
+                                                                                    '../log/log-by-logger/log-by-loggerpy1.log'])
+        borders_states2 = calc_gmm.calc_borders(states2, state_data_num2)        
+        inputs_list2, reward_list2 = calc_gmm.split_data(states2, inputs2, state_data_num2, borders_states2)
 
         for ip in range(calc_gmm.num_of_split):
             for ip_ in range(calc_gmm.num_of_split):
@@ -268,10 +285,13 @@ if __name__ == '__main__':
                     for iy_ in range(calc_gmm.num_of_split):
                         print 'p:' + str(ip) + ' p_:' + str(ip_) + ' y:' + str(iy) + ' y_:' + str(iy_)
                         inputs_gmm = calc_gmm.fit_aic(inputs_list, ip, ip_, iy, iy_)
+                        inputs_gmm2 = calc_gmm.fit_aic(inputs_list2, ip, ip_, iy, iy_)                        
                         for i in range(len(inputs_list)):
                             inputs_gmm_list[i][ip][ip_][iy][iy_] = inputs_gmm[i]
+                            inputs_gmm_list2[i][ip][ip_][iy][iy_] = inputs_gmm2[i]                            
                         if plot_flag:
-                            calc_gmm.plot_gmm(inputs_list, inputs_gmm_list, min_inputs, max_inputs, ip, ip_, iy, iy_)
+                            #calc_gmm.plot_gmm(inputs_list, inputs_gmm_list, min_inputs, max_inputs, ip, ip_, iy, iy_)
+                            calc_gmm.plot_gmm([inputs_list, inputs_list2], [inputs_gmm_list, inputs_gmm_list2], [reward_list, reward_list2], [min_inputs for i in range(2)], [max_inputs for i in range(2)], ip, ip_, iy, iy_)
                         
         #calc_gmm.save_model(inputs_gmm_list, '../log/gmm/gmm.log')
 
