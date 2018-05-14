@@ -122,13 +122,16 @@ class CalcGMM:
                 for k in range(self.state_dim):
                     for l in range(self.past_state_num):
                         s = states[k][l][i]
-                        if i != 0:
-                            r += abs(states[k][l][i - 1]) - abs(states[k][l][i]) # before - after 
+                        if i < len(states[k][l]) - 3:
+                            #r += abs(states[k][l][i]) - abs(states[k][l][i + 1]) # before - after
+                            r += abs(states[k][l][i]) - abs(states[k][l][i + 3]) # before - after                             
                         for m in range(self.num_of_split - 1): # search border
                             if s < borders_states[k][l][m]:
                                 idxs[k][l] = m
                                 break
                 inputs_list[j][idxs[0][0]][idxs[0][1]][idxs[1][0]][idxs[1][1]].append(inputs[j][i])
+                if r < 0:
+                    r = 0
                 rewards_xy_list[j][idxs[0][0]][idxs[0][1]][idxs[1][0]][idxs[1][1]].append([inputs[j][i], r])                
                 
         return inputs_list, rewards_xy_list
@@ -211,9 +214,21 @@ class CalcGMM:
                                 ax[i * 2 + j].plot(X_pred, Y_pred)
                     
                                 # plot reward
-                                reward_x = [r[0] for r in rewards_xy_lists[i][j][ip][ip_][iy][iy_]]
-                                reward_y = [r[1] for r in rewards_xy_lists[i][j][ip][ip_][iy][iy_]]
-                                ax[i * 2 + j].scatter(reward_x, reward_y, zorder=10, c='black')
+                                reward_x = [min_inputs[i][j] + (max_inputs[i][j] - min_inputs[i][j]) * ii / 20.0 for ii in range(20)]
+                                reward_y = [0 for ii in range(20)]
+                                cnt = [0 for ii in range(20)]
+                                for reward_xy in rewards_xy_lists[i][j][ip][ip_][iy][iy_]:
+                                    for k in range(20):
+                                        x = min_inputs[i][j] + (max_inputs[i][j] - min_inputs[i][j]) * k / 20.0
+                                        if reward_xy[0] < x:
+                                            reward_y[k] += reward_xy[1]
+                                            cnt[k] += 1
+                                            break
+                                for k in range(20):
+                                    if cnt[k] == 0:
+                                        continue
+                                    reward_y[k] = reward_y[k] / cnt[k]
+                                ax[i * 2 + j].plot(np.array(reward_x), np.array(reward_y))
                     
                                 # plot zero line
                                 ax[i * 2 + j].plot(np.array([min_inputs[i][j], max_inputs[i][j]]), np.array([0, 0]))               
