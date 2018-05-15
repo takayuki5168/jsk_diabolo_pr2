@@ -225,7 +225,7 @@
        (progn
 	 (if (eq gmm t) ;; when gmm
 	     (progn
-	       (setq *control-x-diff* (- (* *gmm-input-arm* 1000) 700))g
+	       (setq *control-x-diff* (- (* *gmm-input-arm* 1000) 700))
 	       (print *gmm-input-arm*)
 	       (print *control-x-diff*)
 	       )
