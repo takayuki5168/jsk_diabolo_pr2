@@ -40,6 +40,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include "std_msgs/Float64.h"
+#include <cmath>
 
 
 class SamplePCLNode
@@ -96,8 +97,10 @@ public:
         //double a = (cnt * sum_xy - sum_x * sum_y) / (cnt * sum_x2 - sum_x * sum_x);
         //double b = (sum_y - a * sum_x) / cnt;
         double yaw = std::atan2((cnt * sum_xy - sum_x * sum_y), (cnt * sum_x2 - sum_x * sum_x)) / 3.14 * 180;
-        msg_yaw.data = yaw;
-        pub_yaw_.publish(msg_yaw);
+        if (not std::isnan(yaw)) {
+            msg_yaw.data = yaw;
+            pub_yaw_.publish(msg_yaw);
+        }
 
         double mid_x = (max_x + min_x) / 2.;
 
@@ -122,8 +125,10 @@ public:
         }
 
         double pitch = std::atan2(max_z_oku - max_z_temae, max_x_oku - max_x_temae) / 3.14 * 180;
-        msg_pitch.data = pitch;
-        pub_pitch_.publish(msg_pitch);
+        if (not std::isnan(pitch)) {
+            msg_pitch.data = pitch;
+            pub_pitch_.publish(msg_pitch);
+        }
 
         std::cout << "[yaw] " << yaw << " [pitch] " << pitch << std::endl;
         //std::cout << max_x_temae << " " << max_z_temae << " " << max_x_oku << " " << max_z_oku << " " << pitch << std::endl;

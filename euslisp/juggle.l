@@ -10,6 +10,8 @@
 ;;     ディアボロの傾きを計算
 ;;     rosrun pr2_juggle sample_pcl ~input:=/tf_transform_cloud/output
 
+
+
 ;; システム同定のためのロガー
 ;; python state-input-logger.py
 
@@ -27,6 +29,10 @@
   (setq *gmm-input-base* 0)
   
   (ros::load-ros-manifest "roseus")
+
+  ;;
+  ;; Subscriber
+  ;;
   (ros::roseus "listener")
 
   ;; subscribe diabolo
@@ -44,7 +50,12 @@
 		  #'(lambda (msg) (setq *gmm-input-arm* (send msg :data))))
   (ros::subscribe "calc_gmm/diabolo/base" std_msgs::float64
 		  #'(lambda (msg) (setq *gmm-input-base* (send msg :data))))
-  
+
+  ;;
+  ;; Publisher
+  ;;
+  (ros::advertise "idle" std_msgs::float64 1)
+
   
   (load "package://pr2eus/pr2-interface.l")
   (pr2-init)
@@ -214,6 +225,10 @@
   (do-until-key
    ;; subscribe
    (ros::spin-once)
+   
+   (setq idle-msg (instance std_msgs::float64 :init))   
+   (send idle-msg :data 1)
+   (ros::publish "idle" idle-msg)
    
    (progn ;; pitch
      ;; P制御
