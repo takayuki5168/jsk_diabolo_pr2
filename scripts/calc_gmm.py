@@ -200,6 +200,7 @@ class CalcGMM:
         return rewards_list
     
     def plot_gmm(self, inputs_lists, inputs_gmm_lists, rewards_xy_lists, min_inputs, max_inputs, gmm_only=False):
+        print 'plot'
         if gmm_only: # gmm_only
           for ip in range(self.num_of_split):
             for ip_ in range(self.num_of_split):
@@ -210,22 +211,22 @@ class CalcGMM:
                         ax = []
                         for i in range(self.input_dim):
                             ax.append(fig.add_subplot(len(inputs_lists), 1, i + 1))
-                        for i in range(self.input_dim):
-                            # plot histgram
-                            ax[i].set_title(self.input_name[i])
-                            ax[i].set_xlim(min_inputs[i][0], max_inputs[i][0])
+                        for i in range(len(inputs_lists)):                            
+                            for j in range(self.input_dim):
+                                ax[j].set_title(self.input_name[j])
 
-                            for j in range(len(inputs_lists)):
+                                #ax[i].set_xlim(min_inputs[j][0], max_inputs[j][0])                                
                                 if inputs_gmm_lists[i][j][ip][ip_][iy][iy_][0] == None:
                                     continue
                                 # plot GMM
                                 mean = float(inputs_gmm_lists[i][j][ip][ip_][iy][iy_][0][0])
                                 cov = float(inputs_gmm_lists[i][j][ip][ip_][iy][iy_][0][1])
-                                #print mean, cov
                                 X_pred = np.linspace(min_inputs[i][j], max_inputs[i][j], 1000)
                                 Y_pred = self.gauss(X_pred, float(mean), float(cov)) # TODO cov
-                                ax[i].plot(X_pred, Y_pred)
-                        print 'input: ' + str(j) + ' p:' + str(ip) + ' p_:' + str(ip_) + ' y:' + str(iy) + ' y_:' + str(iy_)                                
+                                ax[j].plot(X_pred, Y_pred)
+                                print min(Y_pred), max(Y_pred)
+                                print min(X_pred), max(X_pred)
+                                print 'input: ' + str(i) + ' p:' + str(ip) + ' p_:' + str(ip_) + ' y:' + str(iy) + ' y_:' + str(iy_)                                
                         plt.show()
         else: # not gmm_only
           for ip in range(self.num_of_split):
@@ -283,7 +284,7 @@ class CalcGMM:
                         print 'input: ' + str(j) + ' p:' + str(ip) + ' p_:' + str(ip_) + ' y:' + str(iy) + ' y_:' + str(iy_)
                         plt.show()                        
 
-    def save_model(self, inputs_gmm_list, inputs, states, log_name='../log/gmm/gmm.log'):
+    def save_model(self, inputs_gmm_list, inputs, states, min_inputs, max_inputs, log_name='../log/gmm/gmm.log'):
         with open(log_name, 'w') as f:
             # write meta data
             f.write(str(self.input_dim) + ' '
@@ -358,7 +359,7 @@ class CalcGMM:
     # below is for using real interface
     #
     
-    def realtime_act(self, inputs_gmm_list, inputs, states, borders_states, reward_list):
+    def realtime_act(self, inputs_gmm_list, inputs, states, borders_states, reward_list, min_inputs, max_inputs):
         ip = 0
         ip_ = 0
         iy = 0
@@ -401,7 +402,7 @@ class CalcGMM:
 
             inputs_gmm_list = self.update_gmm(inputs_gmm_list, past_states[0], reward_list, past_inputs[0], past_idx[0][0][0], past_idx[0][0][1], past_idx[0][1][0], past_idx[0][1][1])
             self.publish(next_inputs)
-            self.save_model(inputs_gmm_list, inputs, states, '../log/gmm/gmm.log')
+            self.save_model(inputs_gmm_list, inputs, states, min_inputs, max_inputs, '../log/gmm/gmm.log')
             time.sleep(0.01)
             
     def calc_states_idx(self, borders_states):
@@ -497,10 +498,10 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda signal, frame: sys.exit(0))
     
     calc_gmm = CalcGMM()
-    plot_not_realtimeact = 1
+    flag = 0
     
     # load data & load model and compare
-    if not plot_not_realtimeact:
+    if flag == 0:
         # load data & calc GMM
         states, inputs, state_data_num, min_inputs, max_inputs= calc_gmm.load_data(['../log/log-by-logger/log-by-loggerpy0.log',
                                                                                     '../log/log-by-logger/log-by-loggerpy1.log',
@@ -515,17 +516,20 @@ if __name__ == '__main__':
         reward_list = calc_gmm.calc_reward(inputs_gmm_list, rewards_xy_list)
 
         # load model & calc GMM
-        states_load, inputs_load, state_data_num_load, inputs_gmm_list_load, min_inputs_load, max_inputs_load = calc_gmm.load_model('../log/gmm/gmm.log')
+        states_load, inputs_load, state_data_num_load, inputs_gmm_list_load, min_inputs_load, max_inputs_load = calc_gmm.load_model('../log/gmm/gmm_online_training0.log')
         borders_states_load = calc_gmm.calc_borders(states_load, state_data_num_load)                
         inputs_list_load, rewards_xy_list_load = calc_gmm.split_data(states_load, inputs_load, state_data_num_load, borders_states_load)
+
         
-        #calc_gmm.plot_gmm([inputs_list, inputs_list2], [inputs_gmm_list, inputs_gmm_list2], [rewards_xy_list, rewards_xy_list2], [min_inputs for i in range(2)], [max_inputs for i in range(2)])
         #calc_gmm.plot_gmm([inputs_list], [inputs_gmm_list], [rewards_xy_list], [min_inputs for i in range(1)], [max_inputs for i in range(1)])
-        calc_gmm.plot_gmm([inputs_list, inputs_list_load], [inputs_gmm_list, inputs_gmm_list_load], [rewards_xy_list, False], [min_inputs_load for i in range(2)], [max_inputs_load for i in range(2)], gmm_only=True)
         
 
-    # subscribe states and publish inputs
-    if plot_not_realtimeact:
+        #calc_gmm.plot_gmm([inputs_list, inputs_list_load], [inputs_gmm_list, inputs_gmm_list_load], [rewards_xy_list, False], [min_inputs for i in range(2)], [max_inputs for i in range(2)])
+        calc_gmm.plot_gmm([inputs_list, inputs_list_load], [inputs_gmm_list, inputs_gmm_list_load], [rewards_xy_list, False], [min_inputs for i in range(2)], [max_inputs for i in range(2)], gmm_only=True)
+        
+
+    # load data & subscribe states and publish inputs
+    elif flag == 1:
         # load GMM & calc GMM
         states, inputs, state_data_num, min_inputs, max_inputs= calc_gmm.load_data(['../log/log-by-logger/log-by-loggerpy0.log',
                                                                                     '../log/log-by-logger/log-by-loggerpy1.log',
@@ -542,4 +546,19 @@ if __name__ == '__main__':
         reward_list = calc_gmm.calc_reward(inputs_gmm_list, rewards_xy_list)
 
         # realtime act
-        calc_gmm.realtime_act(inputs_gmm_list, inputs, states, borders_states, reward_list)
+        calc_gmm.realtime_act(inputs_gmm_list, inputs, states, borders_states, reward_list, min_inputs, max_inputs)
+        
+    # load model & subscribe states and publish inputs
+    elif flag == 2:
+        # load model & calc GMM
+        #states_load, inputs_load, state_data_num_load, inputs_gmm_list_load, min_inputs_load, max_inputs_load = calc_gmm.load_model('../log/gmm/gmm_online_training0.log') 
+        states_load, inputs_load, state_data_num_load, inputs_gmm_list_load, min_inputs_load, max_inputs_load = calc_gmm.load_model('../log/gmm/gmm_teach.log')       
+        borders_states_load = calc_gmm.calc_borders(states_load, state_data_num_load)                
+        inputs_list_load, rewards_xy_list_load = calc_gmm.split_data(states_load, inputs_load, state_data_num_load, borders_states_load)
+
+        # calc reward list
+        reward_list_load = calc_gmm.calc_reward(inputs_gmm_list_load, rewards_xy_list_load)
+
+        # realtime act
+        calc_gmm.realtime_act(inputs_gmm_list_load, inputs_load, states_load, borders_states_load, reward_list_load, min_inputs_load, max_inputs_load)
+        
