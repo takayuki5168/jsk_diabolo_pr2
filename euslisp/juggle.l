@@ -8,9 +8,12 @@
 ;;     rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint
 
 ;;     ディアボロの傾きを計算
-;;     rosrun pr2_juggle sample_pcl ~input:=/tf_transform_cloud/output
+;;     rosrun pr2_juggle calc_diabolo_state ~input:=/tf_transform_cloud/output
 
 
+;; rvizでビジュアライズ
+;; rosrun pr2_juggle diabolo_marker
+;; rosrun rviz rviz
 
 ;; システム同定のためのロガー
 ;; python state-input-logger.py
@@ -36,9 +39,9 @@
   (ros::roseus "listener")
 
   ;; subscribe diabolo
-  (ros::subscribe "sample_pcl/diabolo/pitch" std_msgs::float64
+  (ros::subscribe "calc_diabolo_state/pitch" std_msgs::float64
 		  #'(lambda (msg) (setq *diabolo-pitch* (send msg :data))))
-  (ros::subscribe "sample_pcl/diabolo/yaw" std_msgs::float64
+  (ros::subscribe "calc_diabolo_state/yaw" std_msgs::float64
 		  #'(lambda (msg) (setq *diabolo-yaw* (send msg :data))))
 
   ;; subscribe joy
@@ -46,9 +49,9 @@
 		  #'(lambda (msg) (setq *joy* (send msg :axes))))
 
   ;; subscribe gmm
-  (ros::subscribe "calc_gmm/diabolo/arm" std_msgs::float64
+  (ros::subscribe "calc_gmm/arm" std_msgs::float64
 		  #'(lambda (msg) (setq *gmm-input-arm* (send msg :data))))
-  (ros::subscribe "calc_gmm/diabolo/base" std_msgs::float64
+  (ros::subscribe "calc_gmm/base" std_msgs::float64
 		  #'(lambda (msg) (setq *gmm-input-base* (send msg :data))))
 
   ;;

@@ -22,8 +22,8 @@ class Logger:
         self.input_base = 0
         self.vec_z = 0
 
-        rospy.Subscriber("/sample_pcl/diabolo/pitch", Float64, self.callbackPitch)
-        rospy.Subscriber("/sample_pcl/diabolo/yaw", Float64, self.callbackYaw)
+        rospy.Subscriber("calc_diabolo_state/pitch", Float64, self.callbackPitch)
+        rospy.Subscriber("calc_diabolo_state/yaw", Float64, self.callbackYaw)
         rospy.Subscriber("/base_odometry/odom", Odometry, self.callbackOdom)
 
     @staticmethod

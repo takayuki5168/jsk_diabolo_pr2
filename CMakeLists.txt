@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   pcl_conversions
   pcl_ros
+  #tf
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
@@ -33,8 +34,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(sample_pcl src/sample_pcl.cpp)
-target_link_libraries(sample_pcl ${catkin_LIBRARIES})
+add_executable(calc_diabolo_state src/calc_diabolo_state.cpp)
+target_link_libraries(calc_diabolo_state ${catkin_LIBRARIES})
 
 add_executable(diabolo_marker src/diabolo_marker.cpp)
 target_link_libraries(diabolo_marker ${catkin_LIBRARIES})

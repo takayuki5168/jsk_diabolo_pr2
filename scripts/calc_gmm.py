@@ -27,14 +27,14 @@ class CalcGMM:
         
         # Subscriber
         rospy.init_node('gmm', anonymous=True)
-        rospy.Subscriber("sample_pcl/diabolo/pitch", Float64, self.callbackForPitch)
-        rospy.Subscriber("sample_pcl/diabolo/yaw", Float64, self.callbackForYaw)
+        rospy.Subscriber("calc_diabolo_state/pitch", Float64, self.callbackForPitch)
+        rospy.Subscriber("calc_diabolo_state/yaw", Float64, self.callbackForYaw)
         rospy.Subscriber("idle", Float64, self.callbackForIdle)        
         self.now_states = [[0, 0], [0, 0]]
 
         # Publisher
-        self.pub_arm = rospy.Publisher('calc_gmm/diabolo/arm', Float64, queue_size=10)
-        self.pub_base = rospy.Publisher('calc_gmm/diabolo/base', Float64, queue_size=10)
+        self.pub_arm = rospy.Publisher('calc_gmm/arm', Float64, queue_size=10)
+        self.pub_base = rospy.Publisher('calc_gmm/base', Float64, queue_size=10)
 
     # Callback function of Subscriber for pitch
     def callbackForPitch(self, msg):
