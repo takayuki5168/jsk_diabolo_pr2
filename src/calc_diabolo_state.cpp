@@ -132,6 +132,7 @@ int main(int argc, char** argv)
   if (argc > 1) {
     idx = atoi(argv[1]);
   }
+  //idx = 1;
   
   CalcDiaboloStateNode n(idx);
 
