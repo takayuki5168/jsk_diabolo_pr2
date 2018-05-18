@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pr2_juggle)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+
 find_package(catkin REQUIRED COMPONENTS
   # fetcheus
   jsk_maps
@@ -39,3 +41,6 @@ target_link_libraries(calc_diabolo_state ${catkin_LIBRARIES})
 
 add_executable(diabolo_marker src/diabolo_marker.cpp)
 target_link_libraries(diabolo_marker ${catkin_LIBRARIES})
+
+add_executable(particle_system src/particle_system.cpp)
+target_link_libraries(particle_system ${catkin_LIBRARIES})
