@@ -49,9 +49,9 @@
 		  #'(lambda (msg) (setq *joy* (send msg :axes))))
 
   ;; subscribe gmm
-  (ros::subscribe "calc_gmm/arm" std_msgs::float64
+  (ros::subscribe "particle_system/arm" std_msgs::float64
 		  #'(lambda (msg) (setq *gmm-input-arm* (send msg :data))))
-  (ros::subscribe "calc_gmm/base" std_msgs::float64
+  (ros::subscribe "particle_system/base" std_msgs::float64
 		  #'(lambda (msg) (setq *gmm-input-base* (send msg :data))))
 
   ;;

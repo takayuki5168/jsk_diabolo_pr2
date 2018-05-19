@@ -19,7 +19,7 @@ public:
     sub_yaw_ = pnh_.subscribe("calc_diabolo_state/yaw", 1, &ParticleSystemNode::messageCallbackForYaw, this);   // FIX
     sub_idle_ = pnh_.subscribe("calc_diabolo_state/idle", 1, &ParticleSystemNode::messageCallbackForIdle, this);
     
-    pub_arm_ = pnh_.advertise<std_msgs::Float64>("pitch", 10);   // FIX
+    pub_arm_ = pnh_.advertise<std_msgs::Float64>("arm", 10);   // FIX
     pub_base_ = pnh_.advertise<std_msgs::Float64>("base", 10);   // FIX
   }
 
@@ -29,7 +29,7 @@ public:
       if (whether_idle == 0) {
 	continue;
       }
-      
+
       ros::spinOnce();
       calc_now_input();
       publish();
@@ -132,7 +132,7 @@ private:
       // compare distance between x_r and x_t & calc min_p_idx
       double state_diff = 0.;
       for (int s_idx = 0; s_idx < state_dim; s_idx++) {
-	state_diff += std::abs(past_particle.at(s_idx) - now_state.at(s_idx));
+	state_diff += std::abs(particles.at(p_idx).at(s_idx) - now_state.at(s_idx));
       }
       //std::cout << state_diff << std::endl;
       if (state_diff < min_state_diff) {
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
       "../log/log-by-logger/log-by-loggerpy1.log",
       "../log/log-by-logger/log-by-loggerpy2.log",
       "../log/log-by-logger/log-by-loggerpy3.log"};
-      
+
   ParticleSystemNode psn = ParticleSystemNode();
   psn.loadData(log_files);
   psn.loop();
