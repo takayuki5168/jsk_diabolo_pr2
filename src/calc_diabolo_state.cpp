@@ -16,10 +16,12 @@ public:
 			  "input" /* this subscribes '~input' topic */,
 			  1 /* queue size */,
 			  &CalcDiaboloStateNode::messageCallback, this);
-    pub_pitch_ = pnh_.advertise<std_msgs::Float64>("pitch", 1000);  //TODO
-    pub_yaw_ = pnh_.advertise<std_msgs::Float64>("yaw", 1000);      //TODO
-    pub_points_ = pnh_.advertise<sensor_msgs::PointCloud2>("points", 1000);      //TODO
-    pub_cube_ = pnh_.advertise<std_msgs::Float64MultiArray>("cube", 1000);      //TODO
+    pub_pitch_ = pnh_.advertise<std_msgs::Float64>("pitch", 1000);           //TODO
+    pub_yaw_ = pnh_.advertise<std_msgs::Float64>("yaw", 1000);               //TODO
+    pub_points_ = pnh_.advertise<sensor_msgs::PointCloud2>("points", 1000);  //TODO
+    pub_cube_ = pnh_.advertise<std_msgs::Float64MultiArray>("cube", 1000);   //TODO
+    pub_mid_ = pnh_.advertise<std_msgs::Float64>("mid", 1000);               //TODO
+    pub_pitch_points_ = pnh_.advertise<std_msgs::Float64MultiArray>("pitch_points", 1000);               //TODO	
   }
 
   void messageCallback(const sensor_msgs::PointCloud2::ConstPtr& msg_sub)
@@ -29,12 +31,14 @@ public:
 
     std_msgs::Float64 msg_pitch;
     std_msgs::Float64 msg_yaw;
-    
+    std_msgs::Float64 msg_mid;
+
     pcl::PointCloud<pcl::PointXYZ> points;
-    sensor_msgs::PointCloud2 msg_points;
+    std_msgs::Float64MultiArray msg_pitch_points;
 
     std_msgs::Float64MultiArray cube;
-    
+    sensor_msgs::PointCloud2 msg_points;
+
     double max_x = -1000;  // TODO
     double min_x = 1000;   // TODO
     double sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0;
@@ -52,12 +56,12 @@ public:
 	sum_x2 += p->x * p->x;
 	cnt++;
 
-	if (idx_ == 1) {      
+	if (idx_ == 1) {
 	  points.push_back(pcl::PointXYZ(p->x, p->y, p->z));
 	}
       }
     }
-    if (idx_ == 1) {      
+    if (idx_ == 1) {
       std::cout << points.size() << std::endl;
       pcl::toROSMsg(points, msg_points);
       msg_points.header.frame_id = "/base_footprint";
@@ -82,6 +86,8 @@ public:
     }
 
     double mid_x = (max_x + min_x) / 2.;
+    msg_mid.data = mid_x;
+    pub_mid_.publish(msg_mid);
 
     double max_z_temae = 0;  // TODO
     double max_x_temae;      // TODO
@@ -104,6 +110,11 @@ public:
     }
 
     double pitch = std::atan2(max_z_oku - max_z_temae, max_x_oku - max_x_temae) / 3.14 * 180;
+    msg_pitch_points.data.push_back(max_x_oku);
+    msg_pitch_points.data.push_back(max_z_oku);
+    msg_pitch_points.data.push_back(max_x_temae);
+    msg_pitch_points.data.push_back(max_z_temae);
+    pub_pitch_points_.publish(msg_pitch_points);
     if (not std::isnan(pitch)) {
       msg_pitch.data = pitch;
       pub_pitch_.publish(msg_pitch);
@@ -113,14 +124,15 @@ public:
   }
 
   int idx_;
-  
+
   ros::NodeHandle nh_, pnh_;
   ros::Subscriber sub_;
   ros::Publisher pub_pitch_;
   ros::Publisher pub_yaw_;
   ros::Publisher pub_points_;
-  ros::Publisher pub_cube_;  
-
+  ros::Publisher pub_cube_;
+  ros::Publisher pub_mid_;
+  ros::Publisher pub_pitch_points_;  
 };
 
 
@@ -132,8 +144,8 @@ int main(int argc, char** argv)
   if (argc > 1) {
     idx = atoi(argv[1]);
   }
-  //idx = 1;
-  
+  idx = 1;
+
   CalcDiaboloStateNode n(idx);
 
   ros::spin();

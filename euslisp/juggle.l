@@ -21,9 +21,8 @@
 
 ;; sudo service chrony restart
 
-;; HSIフィルタを使いたい時
-;; rosrun jsk_pcl_ros hsi_color_filter ~input:=/kinect_head/depth_registered/quater/throttled/points
-
+;; rosbag を取る
+;; rosbag record -O diabolo0.bag  /diabolo_marker/diabolo_marker /diabolo_marker/diabolo_cube_marker /calc_diabolo_state/points /tf
 
 (defun init ()
   (setq *diabolo-pitch* 0)
@@ -196,7 +195,7 @@
 (defun control (right-x-diff) ;; |right-x-diff| < *max-x-dif*(= 220)
   ;; set z
   (setq *just-now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-  (if (> (- *just-now-time* *now-time*) 1300) ;; 700
+  (if (> (- *just-now-time* *now-time*) 1300) ;;700) ;; 1300
       (progn
 	(setq *now-time* *just-now-time*)
 	(setq *right-z-diff* (- *right-z-diff*))
@@ -232,7 +231,8 @@
   (setq *max-x-diff* 100) ;; TODO  
   (setq *min-x-diff* 0)
   (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-  (setq *right-z-diff* 150)  
+  (setq *right-z-diff* 150)
+  (send *ri* :angle-vector (control 0) 1500) ;;800)  
   
   (do-until-key
    ;; subscribe
@@ -278,7 +278,7 @@
      (if (eq pitch-valid nil)
 	 (setq *control-x-diff* 0)
        )
-     (send *ri* :angle-vector (control *control-x-diff*) 1500)
+     (send *ri* :angle-vector (control *control-x-diff*) 1500) ;;800)
      )
 
    (progn ;; yaw
@@ -302,19 +302,19 @@
 	 (setq *diabolo-yaw* 0))
      
      ;; 最大角度制限
-     (if (> *diabolo-yaw* 20)
-	 (setq *diabolo-yaw* 20))
-     (if (< *diabolo-yaw* -20)
-	 (setq *diabolo-yaw* -20))
+     (if (> *diabolo-yaw* 10) ;;20)
+	 (setq *diabolo-yaw* 10)) ;;20))
+     (if (< *diabolo-yaw* -10) ;;-20)
+	 (setq *diabolo-yaw* -10)) ;;-20))
      
      (setq *radius* 0.7) ;;(/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m] ;; TODO
      (setq *radius* (* *radius* 0.8)) ;; TODO
      (setq *diabolo-yaw-rad* (/ (* *diabolo-yaw* 3.14) 180))
      
-     ;;(setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
-     ;;(setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
-     (setq *diff-x* 0)
-     (setq *diff-y* 0)
+     (setq *diff-x* (* *radius* (- 1 (cos *diabolo-yaw-rad*))))
+     (setq *diff-y* (* *radius* (sin (- *diabolo-yaw-rad*))))
+     ;;(setq *diff-x* 0)
+     ;;(setq *diff-y* 0)
 
      ;; 実機での動作
      (if (eq yaw-valid t)

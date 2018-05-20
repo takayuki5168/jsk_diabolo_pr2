@@ -14,6 +14,7 @@ public:
     now_state = {0, 0};   // FIX 
     now_input = {0, 0};   // FIX
     past_particle = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    //delta_step = 5;
 
     sub_pitch_ = pnh_.subscribe("calc_diabolo_state/pitch", 1, &ParticleSystemNode::messageCallbackForPitch, this);   // FIX
     sub_yaw_ = pnh_.subscribe("calc_diabolo_state/yaw", 1, &ParticleSystemNode::messageCallbackForYaw, this);   // FIX
@@ -34,6 +35,7 @@ public:
       calc_now_input();
       publish();
       update_past_particle();
+      saveModel("model.log");
     }
   }
   
@@ -76,8 +78,22 @@ public:
       std::cout << log_files.at(l_idx) << std::endl;
     }
   }
+
+  void loadModel(std::string log_file)
+  {
+  }
   
-  void saveData() {}
+  void saveModel(std::string log_file)
+  {
+    std::ofstream log(log_file);
+    for (int p_idx = 0; p_idx < particles.size(); p_idx++) {
+      for (int e_idx = 0; e_idx < var_num; e_idx++) {
+	log << particles.at(p_idx).at(e_idx) << " ";
+      }
+      log << std::endl;
+    }
+    log.close();
+  }
   
 private:
   ros::NodeHandle nh_, pnh_;
@@ -91,28 +107,33 @@ private:
   const static int var_num = state_dim * (past_state_num + 1) + input_dim * (past_input_num + 1);
 
   std::vector<std::array<double, var_num>> particles;
-  std::array<int, var_num> past_particle;
-  std::array<int, state_dim> ref_state;
-  std::array<int, state_dim> now_state;
-  std::array<int, input_dim> now_input;
-  
-  int whether_idle = 1;
+  std::array<double, var_num> past_particle;
+  std::array<double, state_dim> ref_state;
+  std::array<double, state_dim> now_state;
+  std::array<double, input_dim> now_input;
 
-  void messageCallbackForPitch(std_msgs::Float64 msg) { now_state.at(0) = msg.data; }   // FIX
-  void messageCallbackForYaw(std_msgs::Float64 msg) { now_state.at(1) = msg.data; }   // FIX
+  double delta_t;
+  
+  int whether_idle = 1;   // TODO
+
+  void messageCallbackForPitch(std_msgs::Float64 msg) { now_state.at(0) = msg.data; std::cout << "pitch:" << msg.data << std::endl; }   // FIX
+  void messageCallbackForYaw(std_msgs::Float64 msg) { now_state.at(1) = msg.data; std::cout << "yaw:" << msg.data << std::endl; }   // FIX
   void messageCallbackForIdle(std_msgs::Float64 msg) {whether_idle = static_cast<int>(msg.data); }
   
   void calc_now_input()
   {
-    std::array<double, state_dim> width_state{20, 20};   // TODO 
-    std::array<double, input_dim> width_input{20, 20};   // TODO
+    std::array<double, state_dim> width_state{10, 10};   // TODO 
+    std::array<double, input_dim> width_input{10, 10};//0.3, 0.005};   // TODO
     double min_state_diff = 1000000.;
     int min_p_idx = 0;
-
+    
+    std::ofstream ofs("po.log");
     for (int p_idx = 0; p_idx < particles.size(); p_idx++) {
       bool flag = true;
       for (int e_idx = 0; e_idx < var_num; e_idx++) {
-	if (e_idx < state_dim) {   // x_t
+	if (e_idx < state_dim) {   // x_t   Later, min of diff between x_t and ref_state are selected
+	  //double diff = std::abs(ref_state.at(e_idx) - past_particle.at(e_idx));
+	  //if (diff > 10/*width_state.at(e_idx % state_dim)*/) flag = false;
 	  continue;
 	} else if (e_idx < state_dim * (past_state_num + 1)) {   // x_t-1 x_t-2 ...
 	  double diff = std::abs(particles.at(p_idx).at(e_idx) - past_particle.at(e_idx));
@@ -124,28 +145,35 @@ private:
 	  if (diff > width_input.at(e_idx % input_dim)) flag = false;
 	}
 	
-	if (not flag) break;
+	if (not flag) break;	  
       }
-      
-      if (not flag) continue;      
+      if (not flag) continue;
+
+      /*
+      std::cout << particles.at(p_idx).at(state_dim * (past_state_num + 1)) << " "
+	  << particles.at(p_idx).at(state_dim * (past_state_num + 1) + 1) << " "
+	  << particles.at(p_idx).at(0) << " "
+	  << particles.at(p_idx).at(1) << std::endl;
+      */
 
       // compare distance between x_r and x_t & calc min_p_idx
       double state_diff = 0.;
       for (int s_idx = 0; s_idx < state_dim; s_idx++) {
 	state_diff += std::abs(particles.at(p_idx).at(s_idx) - now_state.at(s_idx));
       }
-      //std::cout << state_diff << std::endl;
       if (state_diff < min_state_diff) {
 	min_state_diff = state_diff;
 	min_p_idx = p_idx;
       }
     }
+    ofs.close();
 
     // extract now input from min_p_idx of particles
     for (int i_idx = 0; i_idx < input_dim; i_idx++) {
       now_input[i_idx] = particles.at(min_p_idx).at(state_dim * (past_state_num + 1) + i_idx);
     }
-    
+
+    std::cout << now_state.at(0) << " " << now_state.at(1) << std::endl;
     std::cout << "p_idx:" << min_p_idx << std::endl;
   }
 
@@ -159,13 +187,15 @@ private:
     // publish base
     std_msgs::Float64 msg_base;
     msg_base.data = now_input[1];
-    pub_base_.publish(msg_base);    
+    pub_base_.publish(msg_base);
+
+    std::cout << "arm:" << now_input.at(0) << " base:" << now_input.at(1) << std::endl;
   }
 
   void update_past_particle()
   {
     // update state
-    for (int ps_idx = past_state_num - 1; ps_idx > 0; ps_idx--) {
+    for (int ps_idx = past_state_num; ps_idx > 0; ps_idx--) {
       for (int s_idx = 0; s_idx < state_dim; s_idx++) {
 	past_particle.at(state_dim * ps_idx + s_idx) = past_particle.at(state_dim * ps_idx + s_idx - state_dim);
       }
@@ -175,7 +205,7 @@ private:
     }
 
     // update input
-    for (int pi_idx = past_input_num - 1; pi_idx > 0; pi_idx--) {
+    for (int pi_idx = past_input_num; pi_idx > 0; pi_idx--) {
       for (int i_idx = 0; i_idx < input_dim; i_idx++) {
 	past_particle.at(state_dim * (past_state_num + 1) + input_dim * pi_idx + i_idx) = past_particle.at(state_dim * (past_state_num + 1) + input_dim * pi_idx + i_idx - input_dim);
       }
