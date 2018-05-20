@@ -11,40 +11,35 @@ class CalcDiaboloStateNode
 public:
   CalcDiaboloStateNode(int idx) : idx_(idx), nh_(""), pnh_("~")
   {
-    // initialization
-    sub_ = pnh_.subscribe(
-			  "input" /* this subscribes '~input' topic */,
-			  1 /* queue size */,
-			  &CalcDiaboloStateNode::messageCallback, this);
-    pub_pitch_ = pnh_.advertise<std_msgs::Float64>("pitch", 1000);           //TODO
-    pub_yaw_ = pnh_.advertise<std_msgs::Float64>("yaw", 1000);               //TODO
-    pub_points_ = pnh_.advertise<sensor_msgs::PointCloud2>("points", 1000);  //TODO
-    pub_cube_ = pnh_.advertise<std_msgs::Float64MultiArray>("cube", 1000);   //TODO
-    pub_mid_ = pnh_.advertise<std_msgs::Float64>("mid", 1000);               //TODO
-    pub_pitch_points_ = pnh_.advertise<std_msgs::Float64MultiArray>("pitch_points", 1000);               //TODO	
+    // subscriber
+    sub_ = pnh_.subscribe("input", 1, &CalcDiaboloStateNode::messageCallback, this);
+
+    // publisher
+    pub_pitch_ = pnh_.advertise<std_msgs::Float64>("pitch", 1);
+    pub_yaw_ = pnh_.advertise<std_msgs::Float64>("yaw", 1);
+    pub_points_ = pnh_.advertise<sensor_msgs::PointCloud2>("points", 1);
+    pub_cube_ = pnh_.advertise<std_msgs::Float64MultiArray>("cube", 1);
+    pub_mid_ = pnh_.advertise<std_msgs::Float64>("mid", 1);
+    pub_pitch_points_ = pnh_.advertise<sensor_msgs::PointCloud2>("pitch_points", 1);
   }
 
   void messageCallback(const sensor_msgs::PointCloud2::ConstPtr& msg_sub)
   {
+    // translate ros msg to point cloud
     pcl::PointCloud<pcl::PointXYZ> cloud;
     pcl::fromROSMsg(*msg_sub, cloud);
 
-    std_msgs::Float64 msg_pitch;
-    std_msgs::Float64 msg_yaw;
-    std_msgs::Float64 msg_mid;
-
-    pcl::PointCloud<pcl::PointXYZ> points;
-    std_msgs::Float64MultiArray msg_pitch_points;
-
+    // msgs
+    std_msgs::Float64 msg_pitch, msg_yaw, msg_mid;
     std_msgs::Float64MultiArray cube;
-    sensor_msgs::PointCloud2 msg_points;
+    pcl::PointCloud<pcl::PointXYZ> points, pitch_points;
+    sensor_msgs::PointCloud2 msg_points, msg_pitch_points;
 
+    // calculate some value to use calculating pitch, yaw, ...
     double max_x = -1000;  // TODO
     double min_x = 1000;   // TODO
     double sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0;
     int cnt = 0;
-
-
     for (pcl::PointCloud<pcl::PointXYZ>::iterator p = cloud.points.begin(); p != cloud.points.end(); *p++) {
       if (p->x < 1.0 and p->x > 0.3 and p->y > -0.2 and p->y < 0.2 and p->z > 0.10 and p->z < 0.6) {
 	max_x = (max_x > p->x) ? max_x : p->x;
@@ -61,8 +56,7 @@ public:
 	}
       }
     }
-    if (idx_ == 1) {
-      std::cout << points.size() << std::endl;
+    if (idx_ == 1) { // to publish diabolo points and cube
       pcl::toROSMsg(points, msg_points);
       msg_points.header.frame_id = "/base_footprint";
       msg_points.header.stamp = ros::Time::now();
@@ -76,19 +70,20 @@ public:
       cube.data.push_back(0.6);
       pub_cube_.publish(cube);
     }
-    // yaw傾き計算
-    //double a = (cnt * sum_xy - sum_x * sum_y) / (cnt * sum_x2 - sum_x * sum_x);
-    //double b = (sum_y - a * sum_x) / cnt;
+    
+    // calculate yaw and publish
     double yaw = std::atan2((cnt * sum_xy - sum_x * sum_y), (cnt * sum_x2 - sum_x * sum_x)) / 3.14 * 180;
     if (not std::isnan(yaw)) {
       msg_yaw.data = yaw;
       pub_yaw_.publish(msg_yaw);
     }
 
+    // calculate middle x and publish
     double mid_x = (max_x + min_x) / 2.;
     msg_mid.data = mid_x;
     pub_mid_.publish(msg_mid);
 
+    // calculate pitch points and publish
     double max_z_temae = 0;  // TODO
     double max_x_temae;      // TODO
     double max_z_oku = 0;    // TODO
@@ -108,13 +103,16 @@ public:
 	}
       }
     }
-
-    double pitch = std::atan2(max_z_oku - max_z_temae, max_x_oku - max_x_temae) / 3.14 * 180;
-    msg_pitch_points.data.push_back(max_x_oku);
-    msg_pitch_points.data.push_back(max_z_oku);
-    msg_pitch_points.data.push_back(max_x_temae);
-    msg_pitch_points.data.push_back(max_z_temae);
+    pitch_points.push_back(pcl::PointXYZ(max_x_oku, 0, max_z_oku));
+    pitch_points.push_back(pcl::PointXYZ(max_x_temae, 0, max_z_temae));        
+    pcl::toROSMsg(pitch_points, msg_pitch_points);
+    msg_pitch_points.header.frame_id = "/base_footprint";
+    msg_pitch_points.header.stamp = ros::Time::now();
     pub_pitch_points_.publish(msg_pitch_points);
+    
+
+    // calculate pitch and publish
+    double pitch = std::atan2(max_z_oku - max_z_temae, max_x_oku - max_x_temae) / 3.14 * 180;
     if (not std::isnan(pitch)) {
       msg_pitch.data = pitch;
       pub_pitch_.publish(msg_pitch);
@@ -127,12 +125,7 @@ public:
 
   ros::NodeHandle nh_, pnh_;
   ros::Subscriber sub_;
-  ros::Publisher pub_pitch_;
-  ros::Publisher pub_yaw_;
-  ros::Publisher pub_points_;
-  ros::Publisher pub_cube_;
-  ros::Publisher pub_mid_;
-  ros::Publisher pub_pitch_points_;  
+  ros::Publisher pub_pitch_, pub_yaw_, pub_points_, pub_cube_, pub_mid_, pub_pitch_points_;  
 };
 
 
@@ -140,14 +133,11 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "calc_diabolo_state");
 
-  int idx = 0;
-  if (argc > 1) {
-    idx = atoi(argv[1]);
-  }
-  idx = 1;
+  // 1 is to publish diabolo points and cube
+  // 0 is not to do above
+  int idx = 1;
 
   CalcDiaboloStateNode n(idx);
-
   ros::spin();
 
   return 0;
