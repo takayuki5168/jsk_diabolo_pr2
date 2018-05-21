@@ -2,13 +2,13 @@
 ;; start_launch.sh
 
 ;;     30FPS出るpointsをpublish
-;;     roslaunch relay_kinect.launch
+;;     roslaunch relay_kinect.launch 25Hz
 
 ;;     Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;     rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint
+;;     rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint 25Hz
 
 ;;     ディアボロの傾きを計算
-;;     rosrun pr2_juggle calc_diabolo_state ~input:=/tf_transform_cloud/output
+;;     rosrun pr2_juggle calc_diabolo_state ~input:=/tf_transform_cloud/output 25Hz
 
 
 ;; rvizでビジュアライズ
@@ -22,7 +22,7 @@
 ;; sudo service chrony restart
 
 ;; rosbag を取る
-;; rosbag record -O diabolo0.bag  /diabolo_marker/diabolo_marker /diabolo_marker/diabolo_cube_marker /calc_diabolo_state/points /tf
+;; rosbag record -O diabolo0.bag  /diabolo_marker/diabolo_marker /diabolo_marker/diabolo_cube_marker /calc_diabolo_state/points /calc_diabolo_state/pitch_points /tf
 
 (defun init ()
   (setq *diabolo-pitch* 0)
@@ -62,7 +62,7 @@
   (load "package://pr2eus/pr2-interface.l")
   (pr2-init)
   
-  (send *ri* :angle-vector (send *pr2* :reset-pose))
+  (send *ri* :angle-vector (send *pr2* :reset-pose) 5000)
   (setq *ac* (pr2-interface-move-base-trajectory-action *ri*))
   
   (send *ri* :start-grasp)
@@ -129,37 +129,46 @@
   (setq *solve-jump-ik* t)
   (when (eq *solve-jump-ik* t)
     (progn ;; jump
-      (setq *jump-start-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -150 1000)))
+      ;;(setq *jump-start-right-cube* (make-cube 100 100 100 :pos (float-vector 430 -150 1000)))
       ;;(send *jump-start-right-cube* :rotate (+ (/ pi 2) (* pi 2)) :z)              
+      ;;(send *pr2* :rarm :inverse-kinematics *jump-start-right-cube*)
+      ;;(setq *jump-start-left-cube* (make-cube 100 100 100 :pos (float-vector 430 150 1000)))
+      ;;(send *jump-start-left-cube* :rotate (/ -pi 2) :z)                    
+      ;;(send *pr2* :larm :inverse-kinematics *jump-start-left-cube*)
+      ;;(setq *jump-1-pos* (send *pr2* :angle-vector))
+      ;;
+      ;;(setq *jump-mid3-right-cube* (make-cube 100 100 100 :pos (float-vector 430 -900 1250)))
+      ;;(send *jump-mid3-right-cube* :rotate (* pi 0.5) :x)
+      ;;(send *jump-mid3-right-cube* :rotate (* pi 0.5) :z)
+      ;;(send *jump-mid3-right-cube* :rotate (* pi -0.4) :y)                        
+      ;;(send *pr2* :rarm :inverse-kinematics *jump-mid3-right-cube*)
+      ;;(setq *jump-mid3-left-cube* (make-cube 100 100 100 :pos (float-vector 430 900 1250)))
+      ;;(send *jump-mid3-left-cube* :rotate (* pi -0.5) :x)
+      ;;(send *jump-mid3-left-cube* :rotate (* pi -0.5) :z)
+      ;;(send *jump-mid3-left-cube* :rotate (* pi -0.4) :y)                              
+      ;;(send *pr2* :larm :inverse-kinematics *jump-mid3-left-cube*)
+      ;;(setq *jump-4-pos* (send *pr2* :angle-vector))
+
+      (setq *jump-start-right-cube* (make-cube 100 100 100 :pos (float-vector 450 -150 850)))
+      (send *jump-start-right-cube* :rotate (+ (/ pi 2) (* pi 2)) :z)              
       (send *pr2* :rarm :inverse-kinematics *jump-start-right-cube*)
-      (setq *jump-start-left-cube* (make-cube 100 100 100 :pos (float-vector 600 150 1000)))
+      (setq *jump-start-left-cube* (make-cube 100 100 100 :pos (float-vector 450 150 850)))
       (send *jump-start-left-cube* :rotate (/ -pi 2) :z)                    
       (send *pr2* :larm :inverse-kinematics *jump-start-left-cube*)
       (setq *jump-1-pos* (send *pr2* :angle-vector))
 
-      ;;(setq *jump-mid-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -500 900)))
-      ;;(send *pr2* :rarm :inverse-kinematics *jump-mid-right-cube*)
-      ;;(setq *jump-mid-left-cube* (make-cube 100 100 100 :pos (float-vector 600 500 900)))
-      ;;(send *pr2* :larm :inverse-kinematics *jump-mid-left-cube*)
-      ;;(setq *jump-2-pos* (send *pr2* :angle-vector))
-      ;;
-      ;;
-      ;;(setq *jump-mid2-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -500 900)))
-      ;;(send *jump-mid2-right-cube* :rotate 2.0 :x)        
-      ;;(send *pr2* :rarm :inverse-kinematics *jump-mid2-right-cube*)
-      ;;(setq *jump-mid2-left-cube* (make-cube 100 100 100 :pos (float-vector 600 500 900)))
-      ;;(send *jump-mid2-left-cube* :rotate -2.0 :x)                
-      ;;(send *pr2* :larm :inverse-kinematics *jump-mid2-left-cube*)
-      ;;(setq *jump-3-pos* (send *pr2* :angle-vector))
-
-      (setq *jump-mid3-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -500 1250)))
-      ;;(send *jump-mid3-right-cube* :rotate 4.0 :x)        
+      (setq *jump-mid3-right-cube* (make-cube 100 100 100 :pos (float-vector 550 -750 1250)))
+      (send *jump-mid3-right-cube* :rotate (* pi 0.5) :x)
+      (send *jump-mid3-right-cube* :rotate (* pi 0.5) :z)
+      (send *jump-mid3-right-cube* :rotate (* pi -0.4) :y)                        
       (send *pr2* :rarm :inverse-kinematics *jump-mid3-right-cube*)
-      (setq *jump-mid3-left-cube* (make-cube 100 100 100 :pos (float-vector 600 500 1250)))
-      (send *jump-mid3-left-cube* :rotate (/ -pi ) :z)            
+      (setq *jump-mid3-left-cube* (make-cube 100 100 100 :pos (float-vector 550 750 1250)))
+      (send *jump-mid3-left-cube* :rotate (* pi -0.5) :x)
+      (send *jump-mid3-left-cube* :rotate (* pi -0.5) :z)
+      (send *jump-mid3-left-cube* :rotate (* pi -0.4) :y)                              
       (send *pr2* :larm :inverse-kinematics *jump-mid3-left-cube*)
       (setq *jump-4-pos* (send *pr2* :angle-vector))
-
+      
       ;;(setq *jump-mid4-right-cube* (make-cube 100 100 100 :pos (float-vector 600 -500 900)))
       ;;;;(send *jump-mid4-right-cube* :rotate (/ pi 2) :z)    
       ;;(send *pr2* :rarm :inverse-kinematics *jump-mid4-right-cube*)
@@ -345,5 +354,4 @@
       (send *ac* :send-goal *goal*)
       )
     )
-  
   )

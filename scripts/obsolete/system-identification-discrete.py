@@ -1,14 +1,13 @@
 import numpy as np
 import random
 
-LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
-             '../log/log-by-logger/log-by-loggerpy1.log',
-             '../log/log-by-logger/log-by-loggerpy2.log',
-             '../log/log-by-logger/log-by-loggerpy3.log',
-             '../log/log-by-logger/log-by-loggerpy4.log']
+LOG_FILES = ['../../log/log-by-logger/log-by-loggerpy0.log',
+             '../../log/log-by-logger/log-by-loggerpy1.log',
+             '../../log/log-by-logger/log-by-loggerpy2.log',
+             '../../log/log-by-logger/log-by-loggerpy3.log']
 
 # PAST_INPUT_NUM_ shoud be 1 because of using state feedback of ModernControl
-def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
+def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1, DELTA_STEP = 10):
     # init params
     PAST_STATE_NUM = PAST_STATE_NUM_ # 2 or 3 or 4 or 5
     PAST_INPUT_NUM = PAST_INPUT_NUM_
@@ -40,20 +39,20 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
     
     DATA_NUM = len(input_arm)
     
-    X = np.matrix(np.zeros((VAR_NUM, DATA_NUM - PAST_NUM)))
-    Y = np.matrix(np.zeros((STATE_DIM, DATA_NUM - PAST_NUM)))
+    X = np.matrix(np.zeros((VAR_NUM, DATA_NUM - DELTA_STEP * PAST_NUM)))
+    Y = np.matrix(np.zeros((STATE_DIM, DATA_NUM - DELTA_STEP * PAST_NUM)))
     
     
-    for i in range(DATA_NUM - PAST_NUM): # 0-16
+    for i in range(DATA_NUM - PAST_NUM * DELTA_STEP): # 0-16
         # assign X
         for j in range(PAST_STATE_NUM):
-            X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + PAST_NUM - j - 1]
+            X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + PAST_NUM - DELTA_STEP * j - 1]
         for j in range(PAST_INPUT_NUM):
-            X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + PAST_NUM - j - 1]
+            X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + PAST_NUM - DELTA_STEP * j - 1]
         
         # assign Y
-        for i in range(DATA_NUM - PAST_NUM): # 0-16
-            Y[0:STATE_DIM, i:i + 1] = state_list[i + PAST_NUM]
+        for i in range(DATA_NUM - PAST_NUM * DELTA_STEP): # 0-16
+            Y[0:STATE_DIM, i:i + 1] = state_list[i + DELTA_STEP * PAST_NUM]
     
     
     # calc params
@@ -105,17 +104,17 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1):
             Y[0:STATE_DIM, i:i + 1] = state_list[i + PAST_NUM]
             
     # predict
-    file_pitch = open('../log/fitting_pitch.log', 'w')
-    file_yaw = open('../log/fitting_yaw.log', 'w')
+    file_pitch = open('../../log/fitting_pitch.log', 'w')
+    file_yaw = open('../../log/fitting_yaw.log', 'w')
     
     predicted_Y = []
-    for i in range(DATA_NUM - PAST_NUM): # 0-16
+    for i in range(DATA_NUM - DELTA_STEP * PAST_NUM): # 0-16
         predicted_Y.append(A * X[0:VAR_NUM, i:i + 1])
     
     error_pitch = 0
     error_yaw = 0
     # write log randomly
-    random_list = range(DATA_NUM - PAST_NUM)
+    random_list = range(DATA_NUM - DELTA_STEP * PAST_NUM)
     #random.shuffle(random_list)
     for i in random_list: # 0-16
         file_pitch.write('{} {}\n'.format(float(predicted_Y[i][0]), float(Y[0:STATE_DIM, i:i + 1][0])))
@@ -136,7 +135,7 @@ flag = 0
 
 if flag == 0:
     # test once
-    fit(4, 1, True, 2, 1)
+    fit(2, 1, True, 2, 1)
     
 elif flag == 1:
     # test some cases

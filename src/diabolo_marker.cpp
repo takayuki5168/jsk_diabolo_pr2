@@ -80,7 +80,7 @@ public:
     marker_.pose.position.x = center_x;
     marker_.pose.position.y = center_y;
     marker_.pose.position.z = center_z;
-    tf::Quaternion q_diabolo = tf::createQuaternionFromRPY(0, pitch_ * 3.14 / 180, yaw_ * 3.14 / 180);
+    tf::Quaternion q_diabolo = tf::createQuaternionFromRPY(0, -pitch_ * 3.14 / 180 + 1.57, yaw_ * 3.14 / 180);
     quaternionTFToMsg(q_diabolo, marker_.pose.orientation);
 
     // for cube

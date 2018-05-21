@@ -56,20 +56,22 @@ public:
 	}
       }
     }
-    if (idx_ == 1) { // to publish diabolo points and cube
+    
+    if (idx_ == 1) { // publish diabolo points
       pcl::toROSMsg(points, msg_points);
       msg_points.header.frame_id = "/base_footprint";
       msg_points.header.stamp = ros::Time::now();
       pub_points_.publish(msg_points);
-
-      cube.data.push_back(0.3);
-      cube.data.push_back(1.0);
-      cube.data.push_back(-0.2);
-      cube.data.push_back(0.2);
-      cube.data.push_back(0.10);
-      cube.data.push_back(0.6);
-      pub_cube_.publish(cube);
     }
+
+    // calculate cube
+    cube.data.push_back(0.3);
+    cube.data.push_back(1.0);
+    cube.data.push_back(-0.2);
+    cube.data.push_back(0.2);
+    cube.data.push_back(0.10);
+    cube.data.push_back(0.6);
+    pub_cube_.publish(cube);
     
     // calculate yaw and publish
     double yaw = std::atan2((cnt * sum_xy - sum_x * sum_y), (cnt * sum_x2 - sum_x * sum_x)) / 3.14 * 180;
