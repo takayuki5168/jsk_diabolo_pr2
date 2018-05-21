@@ -18,7 +18,18 @@ public:
     ref_state = {0, 0};   // FIX
     now_state = {0, 0};   // FIX 
     now_input = {0, 0};   // FIX
+    
     //past_particle = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    for (int i = 0; i < past_states.size(); i++) {
+      for (int j = 0; j < past_state.at(i).size(); j++) {
+	past_states.at(i).at(j) = 0.;
+      }
+    }
+    for (int i = 0; i < past_inputs.size(); i++) {
+      for (int j = 0; j < past_inputs.at(i).size(); j++) {
+	past_inputs.at(i).at(j) = 0.;
+      }
+    }
 
     sub_pitch_ = pnh_.subscribe("calc_diabolo_state/pitch", 1, &ParticleSystemNode::messageCallbackForPitch, this);   // FIX
     sub_yaw_ = pnh_.subscribe("calc_diabolo_state/yaw", 1, &ParticleSystemNode::messageCallbackForYaw, this);   // FIX
