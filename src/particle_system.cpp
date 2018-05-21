@@ -1,5 +1,5 @@
 /*
- * check if whethere_idle is 0
+ * check if whether_idle is 0
  *
  */
 
@@ -18,25 +18,19 @@ public:
     ref_state = {0, 0};   // FIX
     now_state = {0, 0};   // FIX 
     now_input = {0, 0};   // FIX
-    
-    //past_particle = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    for (int i = 0; i < past_states.size(); i++) {
-      for (int j = 0; j < past_state.at(i).size(); j++) {
-	past_states.at(i).at(j) = 0.;
-      }
-    }
-    for (int i = 0; i < past_inputs.size(); i++) {
-      for (int j = 0; j < past_inputs.at(i).size(); j++) {
-	past_inputs.at(i).at(j) = 0.;
-      }
-    }
 
+    for (int i = 0; i < past_particles.size(); i++) {
+      for (int j = 0; j < past_particles.at(i).size(); j++) {
+	past_particles.at(i).at(j) = 0.;
+      }
+    }
+    
     sub_pitch_ = pnh_.subscribe("calc_diabolo_state/pitch", 1, &ParticleSystemNode::messageCallbackForPitch, this);   // FIX
     sub_yaw_ = pnh_.subscribe("calc_diabolo_state/yaw", 1, &ParticleSystemNode::messageCallbackForYaw, this);   // FIX
     sub_idle_ = pnh_.subscribe("calc_diabolo_state/idle", 1, &ParticleSystemNode::messageCallbackForIdle, this);
     
-    pub_arm_ = pnh_.advertise<std_msgs::Float64>("arm", 1);   // FIX
-    pub_base_ = pnh_.advertise<std_msgs::Float64>("base", 1);   // FIX
+    pub_arm_ = pnh_.advertise<std_msgs::Float64>("particle_system/arm", 1);   // FIX
+    pub_base_ = pnh_.advertise<std_msgs::Float64>("particle_system/base", 1);   // FIX
   }
 
   void loop()
@@ -50,7 +44,7 @@ public:
       calc_now_input();
       publish();
       update_past_particle();
-      saveModel("model.log");
+      //saveModel("model.log");
     }
   }
   
@@ -137,13 +131,11 @@ private:
   const static int input_dim = 2;
   const static int past_input_num = 1;
   const static int var_num = state_dim * (past_state_num + 1) + input_dim * (past_input_num + 1);
-  const static int  delta_step = 5;  
+  const static int  delta_step = 5;  // TODO
 
   std::vector<std::array<double, var_num>> particles;
-  
-  //std::array<std::array<double, var_num>, delta_step> past_particle;
-  std::array<std::array<double, state_dim>, (past_state_num + 1) * delta_step> past_states;
-  std::array<std::array<double, state_dim>, (past_input_num + 1) * delta_step> past_inputs;  
+  std::array<std::array<double, var_num>, delta_step> past_particles;
+
   
   std::array<double, state_dim> ref_state;
   std::array<double, state_dim> now_state;
@@ -162,7 +154,6 @@ private:
     double min_state_diff = 1000000.;
     int min_p_idx = 0;
     
-    std::ofstream ofs("po.log");
     for (int p_idx = 0; p_idx < particles.size(); p_idx++) {
       bool flag = true;
       for (int e_idx = 0; e_idx < var_num; e_idx++) {
@@ -171,12 +162,12 @@ private:
 	  //if (diff > 10/*width_state.at(e_idx % state_dim)*/) flag = false;
 	  continue;
 	} else if (e_idx < state_dim * (past_state_num + 1)) {   // x_t-1 x_t-2 ...
-	  double diff = std::abs(particles.at(p_idx).at(e_idx) - past_particle.at(e_idx));
+	  double diff = std::abs(particles.at(p_idx).at(e_idx) - past_particles.at(0).at(e_idx));	  
 	  if (diff > width_state.at(e_idx % state_dim)) flag = false;
-	}else if (e_idx < state_dim * (past_state_num + 1) + input_dim) {   // u_t
+	} else if (e_idx < state_dim * (past_state_num + 1) + input_dim) {   // u_t
 	  continue;
         } else {   // u_t-1 u_t-2 ...
-    	  double diff = std::abs(particles.at(p_idx).at(e_idx) - past_particle.at(e_idx));
+	    double diff = std::abs(particles.at(p_idx).at(e_idx) - past_particles.at(0).at(e_idx));	  
 	  if (diff > width_input.at(e_idx % input_dim)) flag = false;
 	}
 	
@@ -201,7 +192,6 @@ private:
 	min_p_idx = p_idx;
       }
     }
-    ofs.close();
 
     // extract now input from min_p_idx of particles
     for (int i_idx = 0; i_idx < input_dim; i_idx++) {
@@ -229,27 +219,32 @@ private:
 
   void update_past_particle()
   {
-    // update state
-    for (int ps_idx = past_state_num; ps_idx > 0; ps_idx--) {
-      for (int s_idx = 0; s_idx < state_dim; s_idx++) {
-	past_particle.at(state_dim * ps_idx + s_idx) = past_particle.at(state_dim * ps_idx + s_idx - state_dim);
-      }
-    }
-    for (int s_idx = 0; s_idx < state_dim; s_idx++) {      
-      past_particle.at(s_idx) = now_state.at(s_idx);
-    }
 
-    // update input
-    for (int pi_idx = past_input_num; pi_idx > 0; pi_idx--) {
-      for (int i_idx = 0; i_idx < input_dim; i_idx++) {
-	past_particle.at(state_dim * (past_state_num + 1) + input_dim * pi_idx + i_idx) = past_particle.at(state_dim * (past_state_num + 1) + input_dim * pi_idx + i_idx - input_dim);
+    for (int pp_idx = 0; pp_idx < past_particles.size(); pp_idx++) {
+      if (pp_idx == past_particles.size() - 1) {
+        // update state	
+	for (int s_idx = state_dim * (past_state_num + 1) - 1; s_idx >= 0; s_idx--) {
+	  if (s_idx < state_dim) { // >= state_dim * (past_state_num + 1) - state_dim) {
+            past_particles.at(past_particles.size() - 1 - pp_idx).at(s_idx) = now_state.at(s_idx % state_dim);
+	  } else {
+            past_particles.at(past_particles.size() - 1 - pp_idx).at(s_idx) = past_particles.at(past_particles.size() - 1 - pp_idx).at(s_idx - state_dim);
+	  }
+	}
+        // update input
+	for (int i_idx = input_dim * (past_input_num + 1) - 1; i_idx >= 0; i_idx--) {
+	  if (i_idx < input_dim) { // >= input_dim * (past_input_num + 1) - input_dim) {
+            past_particles.at(past_particles.size() - 1 - pp_idx).at(i_idx) = now_input.at(i_idx % input_dim);
+	  } else {
+            past_particles.at(past_particles.size() - 1 - pp_idx).at(i_idx) = past_particles.at(past_particles.size() - 1 - pp_idx).at(i_idx - input_dim);
+	  }
+	  
+	}
+      } else {
+	past_particles.at(past_particles.size() - 1 - pp_idx) = past_particles.at(past_particles.size() - 1 - pp_idx - 1);
       }
-    }
-    for (int i_idx = 0; i_idx < input_dim; i_idx++) {      
-      past_particle.at(state_dim * (past_state_num + 1) + i_idx) = now_input.at(i_idx);
     }
   }
- };
+};
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "particle_system");
