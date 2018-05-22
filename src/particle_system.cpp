@@ -252,7 +252,10 @@ int main(int argc, char** argv) {
   std::vector<std::string> log_files{"../log/log-by-logger/log-by-loggerpy0.log",
       "../log/log-by-logger/log-by-loggerpy1.log",
       "../log/log-by-logger/log-by-loggerpy2.log",
-      "../log/log-by-logger/log-by-loggerpy3.log"};
+      "../log/log-by-logger/log-by-loggerpy3.log",
+      "../log/log-by-logger/log-by-loggerpy4.log",
+      "../log/log-by-logger/log-by-loggerpy5.log",
+      "../log/log-by-logger/log-by-loggerpy6.log"};      
 
   ParticleSystemNode psn = ParticleSystemNode();
   psn.loadData(log_files);

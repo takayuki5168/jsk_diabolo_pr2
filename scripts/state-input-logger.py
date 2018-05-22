@@ -51,7 +51,7 @@ class Logger:
             transform = self.tfl.lookup_transform("base_footprint", "r_gripper_tool_frame", rospy.Time(0))
             self.input_arm = transform.transform.translation.x
             print self.input_arm, self.input_base, self.state_pitch, self.state_yaw
-            sleep(0.05)
+            #sleep(0.05)
 
 if __name__ == '__main__':
     logger = Logger()
