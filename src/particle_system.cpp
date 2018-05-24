@@ -9,6 +9,7 @@
 #include <fstream>
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float64MultiArray.h>
 
 class ParticleSystemNode
 {
@@ -25,8 +26,7 @@ public:
       }
     }
     
-    sub_pitch_ = pnh_.subscribe("calc_diabolo_state/pitch", 1, &ParticleSystemNode::messageCallbackForPitch, this);   // FIX
-    sub_yaw_ = pnh_.subscribe("calc_diabolo_state/yaw", 1, &ParticleSystemNode::messageCallbackForYaw, this);   // FIX
+    sub_diabolo_state_ = pnh_.subscribe("calc_diabolo_state/state", 1, &ParticleSystemNode::messageCallbackForDiaboloState, this);   // FIX
     sub_idle_ = pnh_.subscribe("calc_diabolo_state/idle", 1, &ParticleSystemNode::messageCallbackForIdle, this);
     
     pub_arm_ = pnh_.advertise<std_msgs::Float64>("particle_system/arm", 1);   // FIX
@@ -123,7 +123,7 @@ public:
   
 private:
   ros::NodeHandle nh_, pnh_;
-  ros::Subscriber sub_pitch_, sub_yaw_, sub_idle_;   // FIX
+  ros::Subscriber sub_diabolo_state_, sub_idle_;   // FIX
   ros::Publisher pub_arm_, pub_base_;
 
   const static int state_dim = 2;
@@ -143,8 +143,11 @@ private:
 
   int whether_idle = 1;   // TODO
 
-  void messageCallbackForPitch(std_msgs::Float64 msg) { now_state.at(0) = msg.data; std::cout << "pitch:" << msg.data << std::endl; }   // FIX
-  void messageCallbackForYaw(std_msgs::Float64 msg) { now_state.at(1) = msg.data; std::cout << "yaw:" << msg.data << std::endl; }   // FIX
+  void messageCallbackForDiaboloState(std_msgs::Float64MultiArray msg) {
+    now_state.at(0) = msg.data.at(0);
+    now_state.at(1) = msg.data.at(1);    
+    std::cout << "pitch:" << msg.data.at(0) << " yaw:" << msg.data.at(1) << std::endl;
+  }
   void messageCallbackForIdle(std_msgs::Float64 msg) {whether_idle = static_cast<int>(msg.data); }
   
   void calc_now_input()
@@ -182,10 +185,12 @@ private:
 	  << particles.at(p_idx).at(1) << std::endl;
       */
 
+
+      // TODO below
       // compare distance between x_r and x_t & calc min_p_idx
       double state_diff = 0.;
       for (int s_idx = 0; s_idx < state_dim; s_idx++) {
-	state_diff += std::abs(particles.at(p_idx).at(s_idx) - now_state.at(s_idx));
+	state_diff += std::abs(particles.at(p_idx).at(s_idx) - ref_state.at(s_idx));
       }
       if (state_diff < min_state_diff) {
 	min_state_diff = state_diff;
@@ -219,28 +224,26 @@ private:
 
   void update_past_particle()
   {
-
-    for (int pp_idx = 0; pp_idx < past_particles.size(); pp_idx++) {
-      if (pp_idx == past_particles.size() - 1) {
-        // update state	
+    for (int pp_idx = past_particles.size() - 1; pp_idx >= 0; pp_idx--) {
+      if (pp_idx == 0) { // latest particle
+        // update state
 	for (int s_idx = state_dim * (past_state_num + 1) - 1; s_idx >= 0; s_idx--) {
 	  if (s_idx < state_dim) { // >= state_dim * (past_state_num + 1) - state_dim) {
-            past_particles.at(past_particles.size() - 1 - pp_idx).at(s_idx) = now_state.at(s_idx % state_dim);
+            past_particles.at(pp_idx).at(s_idx) = now_state.at(s_idx % state_dim);
 	  } else {
-            past_particles.at(past_particles.size() - 1 - pp_idx).at(s_idx) = past_particles.at(past_particles.size() - 1 - pp_idx).at(s_idx - state_dim);
+            past_particles.at(pp_idx).at(s_idx) = past_particles.at(pp_idx).at(s_idx - state_dim);
 	  }
 	}
         // update input
 	for (int i_idx = input_dim * (past_input_num + 1) - 1; i_idx >= 0; i_idx--) {
 	  if (i_idx < input_dim) { // >= input_dim * (past_input_num + 1) - input_dim) {
-            past_particles.at(past_particles.size() - 1 - pp_idx).at(i_idx) = now_input.at(i_idx % input_dim);
+            past_particles.at(pp_idx).at(i_idx) = now_input.at(i_idx % input_dim);
 	  } else {
-            past_particles.at(past_particles.size() - 1 - pp_idx).at(i_idx) = past_particles.at(past_particles.size() - 1 - pp_idx).at(i_idx - input_dim);
+            past_particles.at(pp_idx).at(i_idx) = past_particles.at(pp_idx).at(i_idx - input_dim);
 	  }
-	  
 	}
-      } else {
-	past_particles.at(past_particles.size() - 1 - pp_idx) = past_particles.at(past_particles.size() - 1 - pp_idx - 1);
+      } else { // not latest particle
+	past_particles.at(pp_idx) = past_particles.at(pp_idx - 1);
       }
     }
   }

@@ -13,8 +13,7 @@ class DiaboloMarkerNode
 public:
   DiaboloMarkerNode() : nh_(""), pnh_("~"), pitch_(0), yaw_(0), r(30)
   {
-    sub_pitch_ = pnh_.subscribe("/calc_diabolo_state/pitch", 1, &DiaboloMarkerNode::messageCallbackForPitch, this);
-    sub_yaw_ = pnh_.subscribe("/calc_diabolo_state/yaw", 1, &DiaboloMarkerNode::messageCallbackForYaw, this);
+    sub_diabolo_state_ = pnh_.subscribe("/calc_diabolo_state/diabolo_state", 1, &DiaboloMarkerNode::messageCallbackForDiaboloState, this);
     sub_points_ = pnh_.subscribe("/calc_diabolo_state/points", 1, &DiaboloMarkerNode::messageCallbackForPoints, this);
     sub_cube_ = pnh_.subscribe("/calc_diabolo_state/cube", 1, &DiaboloMarkerNode::messageCallbackForCube, this);
     sub_mid_ = pnh_.subscribe("/calc_diabolo_state/mid", 1, &DiaboloMarkerNode::messageCallbackForMid, this);
@@ -120,8 +119,7 @@ private:
     pub_mid_.publish(marker_mid_);
   }
 
-  void messageCallbackForPitch(const std_msgs::Float64 pitch) { pitch_ = pitch.data; }
-  void messageCallbackForYaw(const std_msgs::Float64 yaw) { yaw_ = yaw.data; }
+  void messageCallbackForDiaboloState(const std_msgs::Float64MultiArray diabolo_state) { pitch_ = diabolo_state.data.at(0); yaw_ = diabolo_state.data.at(1); }
   void messageCallbackForPoints(const sensor_msgs::PointCloud2::ConstPtr& msg_points)
   {
     pcl::PointCloud<pcl::PointXYZ> cloud;
@@ -151,7 +149,7 @@ private:
 
 private:
   ros::NodeHandle nh_, pnh_;
-  ros::Subscriber sub_pitch_, sub_yaw_, sub_points_, sub_cube_, sub_mid_;
+  ros::Subscriber sub_diabolo_state_, sub_points_, sub_cube_, sub_mid_;
   ros::Publisher pub_marker_, pub_cube_, pub_mid_;
   ros::Rate r;
 

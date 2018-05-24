@@ -3,7 +3,7 @@ import rospy
 import tf2_ros
 from nav_msgs.msg import Odometry
 from time import sleep
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64MultiArray
 import tf
 from geometry_msgs.msg import Vector3
 import math
@@ -22,8 +22,7 @@ class Logger:
         self.input_base = 0
         self.vec_z = 0
 
-        rospy.Subscriber("calc_diabolo_state/pitch", Float64, self.callbackPitch)
-        rospy.Subscriber("calc_diabolo_state/yaw", Float64, self.callbackYaw)
+        rospy.Subscriber("calc_diabolo_state/diabolo_state", Float64MultiArray, self.callbackDiaboloState)
         rospy.Subscriber("/base_odometry/odom", Odometry, self.callbackOdom)
 
     @staticmethod
@@ -31,11 +30,9 @@ class Logger:
         e = tf.transformations.euler_from_quaternion((quaternion.x, quaternion.y, quaternion.z, quaternion.w))
         return Vector3(x=e[0], y=e[1], z=e[2])
     
-    def callbackPitch(self, msg):
-        self.state_pitch = msg.data
-    
-    def callbackYaw(self, msg):
-        self.state_yaw = msg.data
+    def callbackDiaboloState(self, msg):
+        self.state_pitch = msg.data[0]
+        self.state_yaw = msg.data[1]
     
     def callbackOdom(self, msg):
         if self.quaternion_to_euler(msg.pose.pose.orientation).z - self.vec_z > 6:

@@ -38,11 +38,12 @@
   (ros::roseus "listener")
 
   ;; subscribe diabolo
-  (ros::subscribe "calc_diabolo_state/pitch" std_msgs::float64
-		  #'(lambda (msg) (setq *diabolo-pitch* (send msg :data))))
-  (ros::subscribe "calc_diabolo_state/yaw" std_msgs::float64
-		  #'(lambda (msg) (setq *diabolo-yaw* (send msg :data))))
-
+  (ros::subscribe "calc_diabolo_state/diabolo_state" std_msgs::Float64MultiArray
+		  #'(lambda (msg) (progn
+				    (setq *diabolo-pitch* (elt (send msg :data) 0))
+				    (setq *diabolo-yaw* (elt (send msg :data) 1))				    
+				    )))
+  
   ;; subscribe joy
   (ros::subscribe "joy" sensor_msgs::Joy
 		  #'(lambda (msg) (setq *joy* (send msg :axes))))

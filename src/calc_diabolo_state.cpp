@@ -15,8 +15,7 @@ public:
     sub_ = pnh_.subscribe("input", 1, &CalcDiaboloStateNode::messageCallback, this);
 
     // publisher
-    pub_pitch_ = pnh_.advertise<std_msgs::Float64>("pitch", 1);
-    pub_yaw_ = pnh_.advertise<std_msgs::Float64>("yaw", 1);
+    pub_diabolo_state_ = pnh_.advertise<std_msgs::Float64MultiArray>("diabolo_state", 1);
     pub_points_ = pnh_.advertise<sensor_msgs::PointCloud2>("points", 1);
     pub_cube_ = pnh_.advertise<std_msgs::Float64MultiArray>("cube", 1);
     pub_mid_ = pnh_.advertise<std_msgs::Float64>("mid", 1);
@@ -30,7 +29,8 @@ public:
     pcl::fromROSMsg(*msg_sub, cloud);
 
     // msgs
-    std_msgs::Float64 msg_pitch, msg_yaw, msg_mid;
+    std_msgs::Float64MultiArray msg_diabolo_state;
+    std_msgs::Float64 msg_mid;
     std_msgs::Float64MultiArray cube;
     pcl::PointCloud<pcl::PointXYZ> points, pitch_points;
     sensor_msgs::PointCloud2 msg_points, msg_pitch_points;
@@ -74,12 +74,13 @@ public:
     pub_cube_.publish(cube);
     
     // calculate yaw and publish
-    double yaw = std::atan2((cnt * sum_xy - sum_x * sum_y), (cnt * sum_x2 - sum_x * sum_x)) / 3.14 * 180;
-    if (not std::isnan(yaw)) {
-      msg_yaw.data = yaw;
-      pub_yaw_.publish(msg_yaw);
+    double tmp_yaw = std::atan2((cnt * sum_xy - sum_x * sum_y), (cnt * sum_x2 - sum_x * sum_x)) / 3.14 * 180;
+    if (not std::isnan(tmp_yaw)) {
+      yaw = tmp_yaw;
     }
+    msg_diabolo_state.data.push_back(yaw);
 
+    
     // calculate middle x and publish
     double mid_x = (max_x + min_x) / 2.;
     msg_mid.data = mid_x;
@@ -114,11 +115,12 @@ public:
     
 
     // calculate pitch and publish
-    double pitch = std::atan2(max_z_oku - max_z_temae, max_x_oku - max_x_temae) / 3.14 * 180;
-    if (not std::isnan(pitch)) {
-      msg_pitch.data = pitch;
-      pub_pitch_.publish(msg_pitch);
+    double tmp_pitch = std::atan2(max_z_oku - max_z_temae, max_x_oku - max_x_temae) / 3.14 * 180;
+    if (not std::isnan(tmp_pitch)) {
+      pitch = tmp_pitch;
     }
+    msg_diabolo_state.data.push_back(pitch);
+    pub_diabolo_state_.publish(msg_diabolo_state);    
 
     std::cout << "[yaw] " << yaw << " [pitch] " << pitch << std::endl;
   }
@@ -127,7 +129,9 @@ public:
 
   ros::NodeHandle nh_, pnh_;
   ros::Subscriber sub_;
-  ros::Publisher pub_pitch_, pub_yaw_, pub_points_, pub_cube_, pub_mid_, pub_pitch_points_;  
+  ros::Publisher pub_diabolo_state_, pub_points_, pub_cube_, pub_mid_, pub_pitch_points_;
+
+  double pitch = 0, yaw = 0;
 };
 
 
