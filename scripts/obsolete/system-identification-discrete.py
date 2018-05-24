@@ -4,10 +4,12 @@ import random
 LOG_FILES = ['../../log/log-by-logger/log-by-loggerpy0.log',
              '../../log/log-by-logger/log-by-loggerpy1.log',
              '../../log/log-by-logger/log-by-loggerpy2.log',
-             '../../log/log-by-logger/log-by-loggerpy3.log']
+             '../../log/log-by-logger/log-by-loggerpy3.log',
+             '../../log/log-by-logger/log-by-loggerpy4.log',
+             '../../log/log-by-logger/log-by-loggerpy5.log']             
 
 # PAST_INPUT_NUM_ shoud be 1 because of using state feedback of ModernControl
-def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1, DELTA_STEP = 10):
+def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1, DELTA_STEP = 1):
     # init params
     PAST_STATE_NUM = PAST_STATE_NUM_ # 2 or 3 or 4 or 5
     PAST_INPUT_NUM = PAST_INPUT_NUM_
@@ -46,13 +48,15 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1, D
     for i in range(DATA_NUM - PAST_NUM * DELTA_STEP): # 0-16
         # assign X
         for j in range(PAST_STATE_NUM):
-            X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + PAST_NUM - DELTA_STEP * j - 1]
+            #X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + DELTA_STEP * PAST_NUM - DELTA_STEP * j - 1]
+            X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + DELTA_STEP * PAST_NUM - DELTA_STEP * (j + 1)]            
         for j in range(PAST_INPUT_NUM):
-            X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + PAST_NUM - DELTA_STEP * j - 1]
+            #X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + DELTA_STEP * PAST_NUM - DELTA_STEP * j - 1]
+            X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + DELTA_STEP * PAST_NUM - DELTA_STEP * (j + 1)]            
         
         # assign Y
-        for i in range(DATA_NUM - PAST_NUM * DELTA_STEP): # 0-16
-            Y[0:STATE_DIM, i:i + 1] = state_list[i + DELTA_STEP * PAST_NUM]
+        #for j in range(DATA_NUM - PAST_NUM * DELTA_STEP): # 0-16
+        Y[0:STATE_DIM, i:i + 1] = state_list[i + DELTA_STEP * PAST_NUM]
     
     
     # calc params
@@ -92,16 +96,18 @@ def fit(log1, log2, PRINT_A_ = True, PAST_STATE_NUM_ = 3, PAST_INPUT_NUM_ = 1, D
     Y = np.matrix(np.zeros((STATE_DIM, DATA_NUM - PAST_NUM)))
     
     
-    for i in range(DATA_NUM - PAST_NUM): # 0-16
+    for i in range(DATA_NUM - DELTA_STEP * PAST_NUM): # 0-16
         # reassign X
         for j in range(PAST_STATE_NUM):
-            X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + PAST_NUM - j - 1]
+            #X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + DELTA_STEP * PAST_NUM - DELTA_STEP * j - 1]
+            X[j * STATE_DIM:(j + 1) * STATE_DIM, i:i + 1] = state_list[i + DELTA_STEP * PAST_NUM - DELTA_STEP * (j + 1)]            
         for j in range(PAST_INPUT_NUM):
-            X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + PAST_NUM - j - 1]
+            #X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + DELTA_STEP * PAST_NUM - DELTA_STEP * j - 1]
+            X[PAST_STATE_NUM * STATE_DIM + j * INPUT_DIM:PAST_STATE_NUM * STATE_DIM + (j + 1) * INPUT_DIM , i:i + 1] = input_list[i + DELTA_STEP * PAST_NUM - DELTA_STEP * (j + 1)]            
     
         # reassign Y
-        for i in range(DATA_NUM - PAST_NUM): # 0-16
-            Y[0:STATE_DIM, i:i + 1] = state_list[i + PAST_NUM]
+        #for i in range(DATA_NUM - PAST_NUM): # 0-16
+        Y[0:STATE_DIM, i:i + 1] = state_list[i + DELTA_STEP * PAST_NUM]
             
     # predict
     file_pitch = open('../../log/fitting_pitch.log', 'w')
@@ -135,7 +141,7 @@ flag = 0
 
 if flag == 0:
     # test once
-    fit(2, 1, True, 2, 1)
+    fit(4, 5, True, 2, 1)
     
 elif flag == 1:
     # test some cases
