@@ -4,9 +4,5 @@
     <!-- <param name="_target_frame_id" value="base_footprint"/> -->
   </node>
 
-  <node name="calc_diabolo_state" pkg="pr2_juggle" type="calc_diabolo_state">
-    <remap from="~input" to="tf_transform_cloud/output" />
-  </node>
-
-  <!--<node name="state_input_logger" pkg="pr2_juggle" type="state-input-logger.py"/> -->
+  <node name="calc_idle_diabolo_state" pkg="pr2_juggle" type="calc_idle_diabolo_state" />
 </launch>

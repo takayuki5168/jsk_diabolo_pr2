@@ -6,13 +6,13 @@
 #include <cmath>
 
 
-class CalcDiaboloStateNode
+class CalcIdleDiaboloStateNode
 {
 public:
-  CalcDiaboloStateNode(int idx) : idx_(idx), nh_(""), pnh_("~")
+  CalcIdleDiaboloStateNode() : nh_(""), pnh_("~"), r(30)
   {
     // subscriber
-    sub_ = pnh_.subscribe("input", 1, &CalcDiaboloStateNode::messageCallback, this);
+    sub_ = pnh_.subscribe("/tf_transform_cloud/output", 1, &CalcIdleDiaboloStateNode::messageCallback, this);
 
     // publisher
     pub_diabolo_state_ = pnh_.advertise<std_msgs::Float64MultiArray>("diabolo_state", 1);
@@ -24,6 +24,7 @@ public:
 
   void messageCallback(const sensor_msgs::PointCloud2::ConstPtr& msg_sub)
   {
+    std::cout << "PO" << std::endl;
     // translate ros msg to point cloud
     pcl::PointCloud<pcl::PointXYZ> cloud;
     pcl::fromROSMsg(*msg_sub, cloud);
@@ -36,14 +37,17 @@ public:
     sensor_msgs::PointCloud2 msg_points, msg_pitch_points;
 
     // calculate some value to use calculating pitch, yaw, ...
-    double max_x = -1000;  // TODO
-    double min_x = 1000;   // TODO
+    double min_x = 0.3, max_x = 1.0;
+    double min_y = -0.2, max_y = 0.2;
+    double min_z = 0.1, max_z = 0.6;
+    double max_diabolo_x = -1000;  // TODO
+    double min_diabolo_x = 1000;   // TODO
     double sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0;
     int cnt = 0;
     for (pcl::PointCloud<pcl::PointXYZ>::iterator p = cloud.points.begin(); p != cloud.points.end(); *p++) {
-      if (p->x < 1.0 and p->x > 0.3 and p->y > -0.2 and p->y < 0.2 and p->z > 0.10 and p->z < 0.6) {
-	max_x = (max_x > p->x) ? max_x : p->x;
-	min_x = (min_x < p->x) ? min_x : p->x;
+      if (p->x < max_x and p->x > min_x and p->y > min_y and p->y < max_y and p->z > min_z and p->z < max_z) {	
+	max_diabolo_x = (max_diabolo_x > p->x) ? max_diabolo_x : p->x;
+	min_diabolo_x = (min_diabolo_x < p->x) ? min_diabolo_x : p->x;
 
 	sum_x += p->x;
 	sum_y += p->y;
@@ -51,26 +55,24 @@ public:
 	sum_x2 += p->x * p->x;
 	cnt++;
 
-	if (idx_ == 1) {
-	  points.push_back(pcl::PointXYZ(p->x, p->y, p->z));
-	}
+	points.push_back(pcl::PointXYZ(p->x, p->y, p->z));
       }
     }
     
-    if (idx_ == 1) { // publish diabolo points
-      pcl::toROSMsg(points, msg_points);
-      msg_points.header.frame_id = "/base_footprint";
-      msg_points.header.stamp = ros::Time::now();
-      pub_points_.publish(msg_points);
-    }
+    // publish diabolo points
+    pcl::toROSMsg(points, msg_points);
+    msg_points.header.frame_id = "/base_footprint";
+    msg_points.header.stamp = ros::Time::now();
+    pub_points_.publish(msg_points);
+    
 
     // calculate cube
-    cube.data.push_back(0.3);
-    cube.data.push_back(1.0);
-    cube.data.push_back(-0.2);
-    cube.data.push_back(0.2);
-    cube.data.push_back(0.10);
-    cube.data.push_back(0.6);
+    cube.data.push_back(min_x);
+    cube.data.push_back(max_x);
+    cube.data.push_back(min_y);
+    cube.data.push_back(max_y);
+    cube.data.push_back(min_z);
+    cube.data.push_back(max_z);
     pub_cube_.publish(cube);
     
     // calculate yaw and publish
@@ -82,8 +84,8 @@ public:
 
     
     // calculate middle x and publish
-    double mid_x = (max_x + min_x) / 2.;
-    msg_mid.data = mid_x;
+    double mid_diabolo_x = (max_diabolo_x + min_diabolo_x) / 2.;
+    msg_mid.data = mid_diabolo_x;
     pub_mid_.publish(msg_mid);
 
     // calculate pitch points and publish
@@ -93,7 +95,7 @@ public:
     double max_x_oku;        // TODO
     for (pcl::PointCloud<pcl::PointXYZ>::iterator p = cloud.points.begin(); p != cloud.points.end(); *p++) {
       if (p->x < 1.0 and p->x > 0.3 and p->y > -0.2 and p->y < 0.2 and p->z > 0.10 and p->z < 0.6) {
-	if (p->x > mid_x) {
+	if (p->x > mid_diabolo_x) {
 	  if (max_z_oku < p->z) {
 	    max_z_oku = p->z;
 	    max_x_oku = p->x;
@@ -125,11 +127,10 @@ public:
     std::cout << "[yaw] " << yaw << " [pitch] " << pitch << std::endl;
   }
 
-  int idx_;
-
   ros::NodeHandle nh_, pnh_;
   ros::Subscriber sub_;
   ros::Publisher pub_diabolo_state_, pub_points_, pub_cube_, pub_mid_, pub_pitch_points_;
+  ros::Rate r;
 
   double pitch = 0, yaw = 0;
 };
@@ -137,13 +138,9 @@ public:
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "calc_diabolo_state");
+  ros::init(argc, argv, "calc_idle_diabolo_state");
 
-  // 1 is to publish diabolo points and cube
-  // 0 is not to do above
-  int idx = 1;
-
-  CalcDiaboloStateNode n(idx);
+  CalcIdleDiaboloStateNode n;
   ros::spin();
 
   return 0;

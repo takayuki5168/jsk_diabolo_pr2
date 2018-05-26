@@ -8,19 +8,19 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-class DiaboloMarkerNode
+class IdleDiaboloMarkerNode
 {
 public:
-  DiaboloMarkerNode() : nh_(""), pnh_("~"), pitch_(0), yaw_(0), r(30)
+  IdleDiaboloMarkerNode() : nh_(""), pnh_("~"), pitch_(0), yaw_(0), r(30)
   {
-    sub_diabolo_state_ = pnh_.subscribe("/calc_diabolo_state/diabolo_state", 1, &DiaboloMarkerNode::messageCallbackForDiaboloState, this);
-    sub_points_ = pnh_.subscribe("/calc_diabolo_state/points", 1, &DiaboloMarkerNode::messageCallbackForPoints, this);
-    sub_cube_ = pnh_.subscribe("/calc_diabolo_state/cube", 1, &DiaboloMarkerNode::messageCallbackForCube, this);
-    sub_mid_ = pnh_.subscribe("/calc_diabolo_state/mid", 1, &DiaboloMarkerNode::messageCallbackForMid, this);
+    sub_diabolo_state_ = pnh_.subscribe("/calc_diabolo_state/diabolo_state", 1, &IdleDiaboloMarkerNode::messageCallbackForDiaboloState, this);
+    sub_points_ = pnh_.subscribe("/calc_diabolo_state/points", 1, &IdleDiaboloMarkerNode::messageCallbackForPoints, this);
+    sub_cube_ = pnh_.subscribe("/calc_diabolo_state/cube", 1, &IdleDiaboloMarkerNode::messageCallbackForCube, this);
+    sub_mid_ = pnh_.subscribe("/calc_diabolo_state/mid", 1, &IdleDiaboloMarkerNode::messageCallbackForMid, this);
 
-    pub_marker_ = pnh_.advertise<visualization_msgs::Marker>("diabolo_marker", 1);
-    pub_cube_ = pnh_.advertise<visualization_msgs::Marker>("diabolo_cube_marker", 1);
-    pub_mid_ = pnh_.advertise<visualization_msgs::Marker>("diabolo_mid_marker", 1);
+    pub_marker_ = pnh_.advertise<visualization_msgs::Marker>("idle_diabolo_marker", 1);
+    pub_cube_ = pnh_.advertise<visualization_msgs::Marker>("idle_diabolo_cube_marker", 1);
+    pub_mid_ = pnh_.advertise<visualization_msgs::Marker>("idle_diabolo_mid_marker", 1);
 
     // for diabolo_marker that represent pitch and yaw
     marker_.header.frame_id = "/base_footprint";
@@ -41,7 +41,7 @@ public:
     // for cutting cube in which diabolo is
     marker_cube_.header.frame_id = "/base_footprint";
     marker_cube_.header.stamp = ros::Time::now();
-    marker_cube_.ns = "diabolo_cube_marker";
+    marker_cube_.ns = "idle_diabolo_cube_marker";
     marker_cube_.id = 1;
     marker_cube_.type = visualization_msgs::Marker::CUBE;
     marker_cube_.action = visualization_msgs::Marker::ADD;
@@ -168,9 +168,9 @@ private:
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "diabolo_marker");
-  DiaboloMarkerNode dmn;
+  ros::init(argc, argv, "idle_diabolo_marker");
+  IdleDiaboloMarkerNode idmn;
 
-  dmn.spin();
+  idmn.spin();
   return 0;
 }
