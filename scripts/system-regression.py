@@ -5,9 +5,9 @@ from keras.layers import Dense, Activation, Dropout, BatchNormalization
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.optimizers import Adam, RMSprop
 
-LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
-             '../log/log-by-logger/log-by-loggerpy1.log',
-             '../log/log-by-logger/log-by-loggerpy2.log',
+LOG_FILES = [#'../log/log-by-logger/log-by-loggerpy0.log',
+             #'../log/log-by-logger/log-by-loggerpy1.log',
+             #'../log/log-by-logger/log-by-loggerpy2.log',
              '../log/log-by-logger/log-by-loggerpy3.log',
              '../log/log-by-logger/log-by-loggerpy4.log',
              '../log/log-by-logger/log-by-loggerpy5.log']             
@@ -26,7 +26,7 @@ class SystemRegression:
         self.STATE_DIM = 2
         self.INPUT_DIM = 2
 
-        self.DELTA_STEP = 15
+        self.DELTA_STEP = 5
 
         self.INPUT_NN_DIM = self.STATE_DIM * self.PAST_STATE_NUM + self.INPUT_DIM * self.PAST_INPUT_NUM
         self.OUTPUT_NN_DIM = self.STATE_DIM
@@ -105,7 +105,7 @@ class SystemRegression:
         for i in range(1, len(self.y_pred) - 1):
             f_arm_pitch_test.write('{} {} {}\n'.format(x_test[i - 1][4], y_test[i][0] - y_test[i - 1][0], self.y_pred[i][0] - y_test[i - 1][0]))
             f_base_yaw_test.write('{} {} {}\n'.format(x_test[i - 1][5], y_test[i][1] - y_test[i - 1][1], self.y_pred[i][1] - y_test[i - 1][1]))
-            f_test.write('{} {} {}\n'.format(x_test[i - 1][4], x_test[i - 1][5], y_test[i][0] - y_test[i - 1][0], self.y_pred[i][0] - y_test[i - 1][0], y_test[i][1] - y_test[i - 1][1], self.y_pred[i][1] - y_test[i - 1][1]))
+            f_test.write('{} {} {} {} {} {}\n'.format(x_test[i - 1][4], x_test[i - 1][5], y_test[i][0] - y_test[i - 1][0], self.y_pred[i][0] - y_test[i - 1][0], y_test[i][1] - y_test[i - 1][1], self.y_pred[i][1] - y_test[i - 1][1]))
         f_arm_pitch_test.close()
         f_base_yaw_test.close()
 
@@ -116,7 +116,7 @@ class SystemRegression:
         for i in range(1, len(self.y_pred) - 1):
             f_arm_pitch_train.write('{} {} {}\n'.format(x_train[i - 1][4], y_train[i][0] - y_train[i - 1][0], self.y_pred[i][0] - y_train[i - 1][0]))
             f_base_yaw_train.write('{} {} {}\n'.format(x_train[i - 1][5], y_train[i][1] - y_train[i - 1][1], self.y_pred[i][1] - y_train[i - 1][1]))
-            f_train.write('{} {} {}\n'.format(x_train[i - 1][4], x_train[i - 1][5], y_train[i][0] - y_train[i - 1][0], self.y_pred[i][0] - y_train[i - 1][0], y_train[i][1] - y_train[i - 1][1], self.y_pred[i][1] - y_train[i - 1][1]))
+            f_train.write('{} {} {} {} {} {}\n'.format(x_train[i - 1][4], x_train[i - 1][5], y_train[i][0] - y_train[i - 1][0], self.y_pred[i][0] - y_train[i - 1][0], y_train[i][1] - y_train[i - 1][1], self.y_pred[i][1] - y_train[i - 1][1]))
         f_arm_pitch_train.close()
         f_base_yaw_train.close()
         f_train.close()                

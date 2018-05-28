@@ -22,8 +22,8 @@
 ;;     ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
 ;;     rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint ;;25Hz
 ;;
-;;     ;;ディアボロの座標を計算
-;;     rosrun pr2_juggle calc_toss_diabolo_pos ;;25Hz
+;; ;;ディアボロの座標を計算
+;; rosrun pr2_juggle calc_toss_diabolo_pos ;;25Hz
 ;;
 ;; ;;rvizでビジュアライズ
 ;; rosrun pr2_juggle toss_diabolo_marker
@@ -45,6 +45,7 @@
   (setq *toss-diabolo-x* 0)
   (setq *toss-diabolo-y* 0)
   (setq *toss-diabolo-z* 0)
+  (setq *toss-diabolo-x-predict* 0)  
   
   (setq *particle-system-input-arm* 0)
   (setq *particle-system-input-base* 0)
@@ -58,22 +59,29 @@
 
   ;; subscribe idle diabolo state
   (ros::subscribe "calc_idle_diabolo_state/diabolo_state" sensor_msgs::PointCloud2
-		  #'(lambda (msg) (progn
-				    ;;(setq *idle-diabolo-pitch* (elt (send msg :data) 0))
-				    ;;(setq *idle-diabolo-yaw* (elt (send msg :data) 1))				    
-				    )))
+  		  #'(lambda (msg) (progn
+  				    ;;(setq *idle-diabolo-pitch* (elt (send msg :data) 0))
+  				    ;;(setq *idle-diabolo-yaw* (elt (send msg :data) 1))				    
+  				    )))
   
   ;; subscribe toss diabolo pos
+  (ros::create-nodehandle "toss")
   (ros::subscribe "calc_toss_diabolo_pos/pos_float" std_msgs::Float64MultiArray
 		  #'(lambda (msg) (progn
 				    (setq *toss-diabolo-x* (elt (send msg :data) 0))
 				    (setq *toss-diabolo-y* (elt (send msg :data) 1))
 				    (setq *toss-diabolo-z* (elt (send msg :data) 2))				    				    
-				    )))
+				    ))
+		  :groupname "toss")
+  (ros::subscribe "calc_toss_diabolo_pos/pos_x" std_msgs::Float64
+		  #'(lambda (msg) (progn
+				    (setq *toss-diabolo-x-predict* (send msg :data))
+				    ))
+		  :groupname "toss")
   
   ;; subscribe joy
   (ros::subscribe "joy" sensor_msgs::Joy
-		  #'(lambda (msg) (setq *joy* (send msg :axes))))
+  		  #'(lambda (msg) (setq *joy* (send msg :axes))))
 
   ;; subscribe ParticleSystem
   (ros::subscribe "particle_system/arm" std_msgs::float64
@@ -155,14 +163,15 @@
   (setq *solve-toss-ik* t)
   (when (eq *solve-toss-ik* t)
     (progn ;; toss CAUTION for purple stick
+      (send *pr2* :angle-vector #f(50.0 16.191 44.0774 31.227 -101.578 295.967 -52.3229 -46.5188 -16.6466 44.8379 -31.9883 -101.951 -272.998 -97.2327 394.953 0.0 5.0))
       (send *pr2* :head-neck-p :joint-angle 5)
       
-      (setq *toss-start-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -350 1250))) ;; 500 -350 750)))
+      (setq *toss-start-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -350 850))) ;; 500 -350 750)))
       (send *toss-start-right-cube* :rotate (* pi 0.5) :x)
       (send *toss-start-right-cube* :rotate (* pi 0.5) :z)
       (send *toss-start-right-cube* :rotate (* pi -0.4) :y)
       (send *pr2* :rarm :inverse-kinematics *toss-start-right-cube*)
-      (setq *toss-start-left-cube* (make-cube 100 100 100 :pos (float-vector 500 350 1250))) ;; 500 350 750)))
+      (setq *toss-start-left-cube* (make-cube 100 100 100 :pos (float-vector 500 350 850))) ;; 500 350 750)))
       (send *toss-start-left-cube* :rotate (* pi -0.5) :x)
       (send *toss-start-left-cube* :rotate (* pi -0.5) :z)
       (send *toss-start-left-cube* :rotate (* pi -0.4) :y)
@@ -181,13 +190,13 @@
       ;;;;(send *pr2* :larm :inverse-kinematics *toss-mid-left-cube*)
       ;;;;(setq *toss-mid-pos* (send *pr2* :angle-vector))
       ;;
-      (setq *toss-goal-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -730 1250))) ;; 500 -720
+      (setq *toss-goal-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -730 1250))) ;; 500 -730 1250
       (send *toss-goal-right-cube* :rotate (* pi 0.5) :x)
       (send *toss-goal-right-cube* :rotate (* pi 0.5) :z)
       (send *toss-goal-right-cube* :rotate (* pi -0.4) :y)
       ;;(send *toss-goal-right-cube* :rotate (* pi -0.2) :x)                              
       (send *pr2* :rarm :inverse-kinematics *toss-goal-right-cube*)
-      (setq *toss-goal-left-cube* (make-cube 100 100 100 :pos (float-vector 500 730 1250))) ;; 500 720
+      (setq *toss-goal-left-cube* (make-cube 100 100 100 :pos (float-vector 500 730 1250))) ;; 500 730 1250
       (send *toss-goal-left-cube* :rotate (* pi -0.5) :x)
       (send *toss-goal-left-cube* :rotate (* pi -0.5) :z)
       (send *toss-goal-left-cube* :rotate (* pi -0.4) :y)
@@ -218,24 +227,26 @@
   (setq *toss-save-right-diff-cube* (send (send *toss-save-right-cube* :copy-coords) :translate (float-vector 0 (- y-diff) 0)))
   (setq *toss-save-left-diff-cube* (send (send *toss-save-left-cube* :copy-coords) :translate (float-vector 0 y-diff 0)))
 
-  (send *pr2* :rarm :inverse-kinematics *toss-save-right-diff-cube*)
-  (send *pr2* :larm :inverse-kinematics *toss-save-left-diff-cube*)  
+  (send *pr2* :rarm :inverse-kinematics *toss-save-right-diff-cube* :stop 3 :revert-if-fail nil)
+  (send *pr2* :larm :inverse-kinematics *toss-save-left-diff-cube* :stop 3 :revert-if-fail nil)
   )
 
 (defun toss-only ()
-  (send *ri* :angle-vector *toss-start-pos* 3000)
+  ;;(send *ri* :angle-vector *toss-start-pos* 3000)
+  ;;(send *ri* :wait-interpolation)
+  (send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.1)  
+  (send *ri* :wait-interpolation-smooth 450)  
+  (send *ri* :angle-vector *toss-save-pos* 800)
   (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *toss-goal-pos* 800)
-  (send *ri* :wait-interpolation-smooth 700)  
-  (send *ri* :angle-vector *toss-save-pos* 100)
+  (send *ri* :angle-vector *toss-start-pos* 3000)  
   )
 
 (defun toss ()
-  ;;(send *ri* :angle-vector *toss-start-pos* 3000)
-  ;;(send *ri* :wait-interpolation)
-  ;;(send *ri* :angle-vector *toss-goal-pos* 800)
-  ;;(send *ri* :wait-interpolation-smooth 600)  
-  ;;(send *ri* :angle-vector *toss-save-pos* 800)  
+  (send *ri* :angle-vector *toss-start-pos* 3000)
+  (send *ri* :wait-interpolation)
+  (send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.1)  
+  (send *ri* :wait-interpolation-smooth 500)  
+  (send *ri* :angle-vector *toss-save-pos* 800)
 
   (setq *toss-max-y-diff* 100)
   (setq *toss-min-y-diff* -300)  
@@ -248,10 +259,10 @@
    (print (- *now-time* *past-time*))
    
    ;; subscribe
-   (ros::spin-once)
+   (ros::spin-once "toss")
 
    ;; control
-   (setq *toss-control-y-diff* (- (* *toss-diabolo-x* 1000) 580))
+   (setq *toss-control-y-diff* (- (* *toss-diabolo-x-predict* 1000) 580))
 
    ;; max min of control diff
    (if (> *toss-control-y-diff* *toss-max-y-diff*)
@@ -260,7 +271,8 @@
        (setq *toss-control-y-diff* *toss-min-y-diff*))
 
    ;; :angle-vector
-   ;;(send *ri* :angle-vector (toss-control *toss-control-y-diff*) 500 :default-controller 0 :min-time 0.4)
+   (setq *toss-ec* (toss-control *toss-control-y-diff*))
+   (send *ri* :angle-vector *toss-ec* 500 :default-controller 0 :min-time 0.3)
    )
 
   (send *ri* :angle-vector *toss-start-pos* 3000)
