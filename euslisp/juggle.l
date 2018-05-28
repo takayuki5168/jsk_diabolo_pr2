@@ -157,12 +157,12 @@
     (progn ;; toss CAUTION for purple stick
       (send *pr2* :head-neck-p :joint-angle 5)
       
-      (setq *toss-start-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -350 750))) ;; 450 -150 850
+      (setq *toss-start-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -350 1250))) ;; 500 -350 750)))
       (send *toss-start-right-cube* :rotate (* pi 0.5) :x)
       (send *toss-start-right-cube* :rotate (* pi 0.5) :z)
       (send *toss-start-right-cube* :rotate (* pi -0.4) :y)
       (send *pr2* :rarm :inverse-kinematics *toss-start-right-cube*)
-      (setq *toss-start-left-cube* (make-cube 100 100 100 :pos (float-vector 500 350 750))) ;; 450 -150 850
+      (setq *toss-start-left-cube* (make-cube 100 100 100 :pos (float-vector 500 350 1250))) ;; 500 350 750)))
       (send *toss-start-left-cube* :rotate (* pi -0.5) :x)
       (send *toss-start-left-cube* :rotate (* pi -0.5) :z)
       (send *toss-start-left-cube* :rotate (* pi -0.4) :y)
@@ -181,13 +181,13 @@
       ;;;;(send *pr2* :larm :inverse-kinematics *toss-mid-left-cube*)
       ;;;;(setq *toss-mid-pos* (send *pr2* :angle-vector))
       ;;
-      (setq *toss-goal-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -720 1250))) ;; 580 -720
+      (setq *toss-goal-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -730 1250))) ;; 500 -720
       (send *toss-goal-right-cube* :rotate (* pi 0.5) :x)
       (send *toss-goal-right-cube* :rotate (* pi 0.5) :z)
       (send *toss-goal-right-cube* :rotate (* pi -0.4) :y)
       ;;(send *toss-goal-right-cube* :rotate (* pi -0.2) :x)                              
       (send *pr2* :rarm :inverse-kinematics *toss-goal-right-cube*)
-      (setq *toss-goal-left-cube* (make-cube 100 100 100 :pos (float-vector 500 720 1250))) ;; 580 720
+      (setq *toss-goal-left-cube* (make-cube 100 100 100 :pos (float-vector 500 730 1250))) ;; 500 720
       (send *toss-goal-left-cube* :rotate (* pi -0.5) :x)
       (send *toss-goal-left-cube* :rotate (* pi -0.5) :z)
       (send *toss-goal-left-cube* :rotate (* pi -0.4) :y)
