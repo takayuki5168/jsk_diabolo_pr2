@@ -4,6 +4,8 @@
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <cmath>
+#include <array>
+#include <vector>
 
 class CalcTossDiaboloPosNode
 {

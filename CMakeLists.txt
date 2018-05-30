@@ -33,8 +33,8 @@ include_directories(
 add_executable(calc_idle_diabolo_state src/calc_idle_diabolo_state.cpp)
 target_link_libraries(calc_idle_diabolo_state ${catkin_LIBRARIES})
 
-#add_executable(calc_toss_diabolo_pos src/calc_toss_diabolo_pos.cpp)
-#target_link_libraries(calc_toss_diabolo_pos ${catkin_LIBRARIES})
+add_executable(calc_toss_diabolo_pos src/calc_toss_diabolo_pos.cpp)
+target_link_libraries(calc_toss_diabolo_pos ${catkin_LIBRARIES})
 
 #add_executable(toss_diabolo_marker src/toss_diabolo_marker.cpp)
 #target_link_libraries(toss_diabolo_marker ${catkin_LIBRARIES})

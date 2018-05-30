@@ -20,14 +20,14 @@
       ;; right hand
       (speak-jp "右手にスティックを")
       (send *ri* :stop-grasp :rarm)
-      (unix::usleep 2000000)      
+      (unix::usleep 3000000)      
       (wait-for-hand-impact :rarm)
       (send *ri* :start-grasp :rarm)
 
       ;; left hand
       (speak-jp "左手にスティックを")
       (send *ri* :stop-grasp :larm)
-      (unix::usleep 2000000)            
+      (unix::usleep 3000000)            
       (wait-for-hand-impact :larm)      
       (send *ri* :start-grasp :larm)      
 
