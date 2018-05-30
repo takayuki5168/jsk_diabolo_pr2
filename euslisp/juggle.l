@@ -1,29 +1,28 @@
 ;; ;;idle用launchファイル群
-;; start_idle_launch.sh
+;; idle_diabolo.launch
+;;   ;;30FPS出るpointsをpublish
+;;   roslaunch relay_kinect.launch ;;25Hz
 ;;
-;;     ;;30FPS出るpointsをpublish
-;;     roslaunch relay_kinect.launch ;;25Hz
+;;   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
+;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint ;;25Hz
 ;;
-;;     ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;     rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint ;;25Hz
-;;
-;;     ;;ディアボロの傾きを計算
-;;     rosrun pr2_juggle calc_idle_diabolo_state ;;25Hz
+;;   ;;ディアボロの傾きを計算
+;;   rosrun pr2_juggle calc_idle_diabolo_state ;;25Hz
 ;;
 ;; ;;rvizでビジュアライズ
 ;; rosrun pr2_juggle idle_diabolo_marker
 ;; rosrun rviz rviz
 
 ;; ;;toss用launchファイル群
-;; start_toss_launch.sh
-;;     ;;30FPS出るpointsをpublish
-;;     roslaunch relay_kinect.launch ;;25Hz
+;; toss_diabolo.launch
+;;   ;;30FPS出るpointsをpublish
+;;   roslaunch relay_kinect.launch ;;25Hz
 ;;
-;;     ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;     rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint ;;25Hz
+;;   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
+;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint ;;25Hz
 ;;
-;; ;;ディアボロの座標を計算
-;; rosrun pr2_juggle calc_toss_diabolo_pos ;;25Hz
+;;   ;;ディアボロの座標を計算
+;;   rosrun pr2_juggle calc_toss_diabolo_pos ;;25Hz
 ;;
 ;; ;;rvizでビジュアライズ
 ;; rosrun pr2_juggle toss_diabolo_marker
