@@ -1,9 +1,9 @@
 <launch>
-  <include file="relay_kinect.launch"/>
+  <include file="$(find jsk_diabolo_pr2)/launch/relay_kinect.launch"/>  
   
   <node name="tf_transform_cloud" pkg="jsk_pcl_ros" type="tf_transform_cloud">
     <remap from="~input" to="kinect_head_remote/depth_registered/points" />
-    <param name="_target_frame_id" value="base_footprint"/>
+    <param name="~target_frame_id" value="base_footprint"/>
   </node>
 
   <node name="calc_toss_diabolo_pos" pkg="jsk_diabolo_pr2" type="calc_toss_diabolo_pos" />
