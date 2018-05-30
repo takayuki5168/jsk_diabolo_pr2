@@ -1,6 +1,5 @@
 <launch>
-  <include file="relay_kinect.launch"/>
-  <include file="idle_diabolo.launch"/>
+  <include file="$(find pr2_juggle)/launch/idle_diabolo.launch"/>
   
   <node name="diabolo_euslisp_idle" pkg="roseus" type="roseus"
     args="idle.l">

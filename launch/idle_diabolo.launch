@@ -1,5 +1,5 @@
 <launch>
-  <include file="relay_kinect.launch"/>
+  <include file="$(find pr2_juggle)/launch/relay_kinect.launch"/>
   
   <node name="tf_transform_cloud" pkg="jsk_pcl_ros" type="tf_transform_cloud">
     <remap from="~input" to="kinect_head_remote/depth_registered/points" />

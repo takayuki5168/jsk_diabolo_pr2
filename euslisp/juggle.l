@@ -8,10 +8,6 @@
 ;;
 ;;   ;;ディアボロの傾きを計算
 ;;   rosrun pr2_juggle calc_idle_diabolo_state ;;25Hz
-;;
-;; ;;rvizでビジュアライズ
-;; rosrun pr2_juggle idle_diabolo_marker
-;; rosrun rviz rviz
 
 ;; ;;toss用launchファイル群
 ;; toss_diabolo.launch
@@ -23,10 +19,7 @@
 ;;
 ;;   ;;ディアボロの座標を計算
 ;;   rosrun pr2_juggle calc_toss_diabolo_pos ;;25Hz
-;;
-;; ;;rvizでビジュアライズ
-;; rosrun pr2_juggle toss_diabolo_marker
-;; rosrun rviz rviz
+
 
 ;; ;;システム同定のためのロガー
 ;; python state-input-logger.py
@@ -57,11 +50,13 @@
   (ros::roseus "listener")
 
   ;; subscribe idle diabolo state
-  (ros::subscribe "calc_idle_diabolo_state/diabolo_state" sensor_msgs::PointCloud2
+  (ros::create-nodehandle "idle")  
+  (ros::subscribe "calc_idle_diabolo_state/diabolo_state" std_msgs::Float64MultiArray
   		  #'(lambda (msg) (progn
-  				    ;;(setq *idle-diabolo-pitch* (elt (send msg :data) 0))
-  				    ;;(setq *idle-diabolo-yaw* (elt (send msg :data) 1))				    
-  				    )))
+  				    (setq *idle-diabolo-pitch* (elt (send msg :data) 0))
+  				    (setq *idle-diabolo-yaw* (elt (send msg :data) 1))				    
+  				    ))
+		  :groupname "idle")
   
   ;; subscribe toss diabolo pos
   (ros::create-nodehandle "toss")
@@ -79,14 +74,14 @@
 		  :groupname "toss")
   
   ;; subscribe joy
-  (ros::subscribe "joy" sensor_msgs::Joy
-  		  #'(lambda (msg) (setq *joy* (send msg :axes))))
+  ;;(ros::subscribe "joy" sensor_msgs::Joy
+  ;;		  #'(lambda (msg) (setq *joy* (send msg :axes))))
 
   ;; subscribe ParticleSystem
-  (ros::subscribe "particle_system/arm" std_msgs::float64
-		  #'(lambda (msg) (setq *particle-system-input-arm* (send msg :data))))
-  (ros::subscribe "particle_system/base" std_msgs::float64
-		  #'(lambda (msg) (setq *particle-system-input-base* (send msg :data))))
+  ;;(ros::subscribe "particle_system/arm" std_msgs::float64
+  ;;		  #'(lambda (msg) (setq *particle-system-input-arm* (send msg :data))))
+  ;;(ros::subscribe "particle_system/base" std_msgs::float64
+  ;;		  #'(lambda (msg) (setq *particle-system-input-base* (send msg :data))))
 
   ;; publish whether idle or not
   (ros::advertise "idle" std_msgs::float64 1)
@@ -320,11 +315,12 @@
   (setq *min-x-diff* 0)
   (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
   (setq *right-z-diff* 150)
-  (send *ri* :angle-vector (idle-control 0) 1500) ;;800)  
+  (send *ri* :angle-vector (idle-control 0) 1500) ;;800)
+  (send *pr2* :head-neck-p :joint-angle 50)  
   
   (do-until-key
    ;; subscribe
-   (ros::spin-once)
+   (ros::spin-once "idle")
    
    (setq idle-msg (instance std_msgs::float64 :init))   
    (send idle-msg :data 1)
