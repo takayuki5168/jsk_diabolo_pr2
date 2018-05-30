@@ -1,16 +1,21 @@
+#include <cmath>
 #include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <pcl_conversions/pcl_conversions.h>
+#include "tf/transform_broadcaster.h"
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <visualization_msgs/Marker.h>
-#include "tf/transform_broadcaster.h"
-#include <cmath>
 
 class CalcIdleDiaboloStateNode
 {
 public:
-  CalcIdleDiaboloStateNode() : nh_(""), pnh_("~"), r_(30)
+  CalcIdleDiaboloStateNode() : nh_(""), pnh_("~"), r_(30),
+			       pitch_(0), yaw_(0),  			       
+			       min_cube_x_(0.3), max_cube_x_(1.0),
+			       min_cube_y_(-0.2), max_cube_y_(0.2),
+			       min_cube_z_(0.1), max_cube_z_(0.6)
+
   {
     // Subscriber
     sub_pointcloud_ = pnh_.subscribe("/tf_transform_cloud/output", 1, &CalcIdleDiaboloStateNode::messageCallback, this);
@@ -19,9 +24,9 @@ public:
     pub_diabolo_state_ = pnh_.advertise<std_msgs::Float64MultiArray>("diabolo_state", 1);
     pub_diabolo_points_ = pnh_.advertise<sensor_msgs::PointCloud2>("diabolo_points", 1);
     pub_pitch_points_ = pnh_.advertise<sensor_msgs::PointCloud2>("pitch_points", 1);
-    pub_marker_state_ = pnh_.advertise<visualization_msgs::Marker>("idle_diabolo_marker", 1);
-    pub_marker_cube_ = pnh_.advertise<visualization_msgs::Marker>("idle_diabolo_cube_marker", 1);
-    pub_marker_mid_ = pnh_.advertise<visualization_msgs::Marker>("idle_diabolo_mid_marker", 1);
+    pub_marker_state_ = pnh_.advertise<visualization_msgs::Marker>("marker_state", 1);
+    pub_marker_cube_ = pnh_.advertise<visualization_msgs::Marker>("marker_cube", 1);
+    pub_marker_mid_ = pnh_.advertise<visualization_msgs::Marker>("marker_mid", 1);
 
     // Marker
     initMarker();
@@ -86,7 +91,7 @@ private:
 
   void messageCallback(const sensor_msgs::PointCloud2::ConstPtr& msg_pointcloud)
   {
-    // translate ros msg to point cloud
+    // translate ros msg to pointcloud
     pcl::PointCloud<pcl::PointXYZ> pointcloud;
     pcl::fromROSMsg(*msg_pointcloud, pointcloud);
 
@@ -98,8 +103,8 @@ private:
     /*
      * calculate some value to use calculating pitch, yaw, ...
      */
-    double max_diabolo_x = -1000;  // TODO
-    double min_diabolo_x = 1000;   // TODO
+    double max_diabolo_x = -1000;
+    double min_diabolo_x = 1000;
     double sum_diabolo_x = 0, sum_diabolo_y = 0, sum_diabolo_z = 0, sum_diabolo_xy = 0, sum_diabolo_x2 = 0;
     int diabolo_cnt = 0;
     for (pcl::PointCloud<pcl::PointXYZ>::iterator p = pointcloud.points.begin(); p != pointcloud.points.end(); *p++) {
@@ -129,10 +134,10 @@ private:
     /*
      * calculate pitch points and publish
      */
-    double max_z_temae = 0;  // TODO
-    double max_x_temae;      // TODO
-    double max_z_oku = 0;    // TODO
-    double max_x_oku;        // TODO
+    double max_z_temae = 0;
+    double max_x_temae;
+    double max_z_oku = 0;
+    double max_x_oku;
     double mid_diabolo_x = (max_diabolo_x + min_diabolo_x) / 2.;
     for (pcl::PointCloud<pcl::PointXYZ>::iterator p = pointcloud.points.begin(); p != pointcloud.points.end(); *p++) {
       if (p->x < max_cube_x_ and p->x > min_cube_x_ and p->y > min_cube_y_ and p->y < max_cube_y_ and p->z > min_cube_z_ and p->z < max_cube_z_) {		
@@ -220,18 +225,18 @@ private:
   ros::NodeHandle nh_, pnh_;
   ros::Subscriber sub_pointcloud_;
   ros::Publisher pub_diabolo_state_;                                   // Float64MultiArray
-  ros::Publisher pub_diabolo_points_, pub_pitch_points_;                      // PointCloud
+  ros::Publisher pub_diabolo_points_, pub_pitch_points_;               // PointCloud
   ros::Publisher pub_marker_state_, pub_marker_cube_, pub_marker_mid_; // Marker
   visualization_msgs::Marker marker_state_, marker_cube_, marker_mid_;  
   ros::Rate r_;
 
   // cube params
-  double min_cube_x_ = 0.3, max_cube_x_ = 1.0;
-  double min_cube_y_ = -0.2, max_cube_y_ = 0.2;
-  double min_cube_z_ = 0.1, max_cube_z_ = 0.6;
+  double min_cube_x_, max_cube_x_;
+  double min_cube_y_, max_cube_y_;
+  double min_cube_z_, max_cube_z_;
 
-  // state
-  double pitch_ = 0, yaw_ = 0;  
+  // diabolo state
+  double pitch_, yaw_;  
 };
 
 
