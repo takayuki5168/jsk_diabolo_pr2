@@ -1,10 +1,10 @@
 <launch>
-  <include file="$(find pr2_juggle)/launch/relay_kinect.launch"/>
+  <include file="$(find jsk_diabolo_pr2)/launch/relay_kinect.launch"/>
   
   <node name="tf_transform_cloud" pkg="jsk_pcl_ros" type="tf_transform_cloud">
     <remap from="~input" to="kinect_head_remote/depth_registered/points" />
     <param name="~target_frame_id" value="base_footprint"/>
   </node>
 
-  <node name="calc_idle_diabolo_state" pkg="pr2_juggle" type="calc_idle_diabolo_state" />
+  <node name="calc_idle_diabolo_state" pkg="jsk_diabolo_pr2" type="calc_idle_diabolo_state" />
 </launch>

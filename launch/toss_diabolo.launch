@@ -6,5 +6,5 @@
     <param name="_target_frame_id" value="base_footprint"/>
   </node>
 
-  <node name="calc_toss_diabolo_pos" pkg="pr2_juggle" type="calc_toss_diabolo_pos" />
+  <node name="calc_toss_diabolo_pos" pkg="jsk_diabolo_pr2" type="calc_toss_diabolo_pos" />
 </launch>
