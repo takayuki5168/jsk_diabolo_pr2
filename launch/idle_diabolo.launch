@@ -3,7 +3,7 @@
   
   <node name="tf_transform_cloud" pkg="jsk_pcl_ros" type="tf_transform_cloud">
     <remap from="~input" to="kinect_head_remote/depth_registered/points" />
-    <param name="_target_frame_id" value="base_footprint"/>
+    <param name="~target_frame_id" value="base_footprint"/>
   </node>
 
   <node name="calc_idle_diabolo_state" pkg="pr2_juggle" type="calc_idle_diabolo_state" />

@@ -415,7 +415,6 @@
 	   )
        )
      )
-
    )
   
   (send *pr2* :rarm :inverse-kinematics *default-right-cube*)  
