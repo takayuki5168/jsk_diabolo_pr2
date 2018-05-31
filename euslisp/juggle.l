@@ -217,7 +217,6 @@
       (send *toss-save-left-cube* :rotate (* pi -0.4) :y)                              
       (send *pr2* :larm :inverse-kinematics *toss-save-left-cube*)
       (setq *toss-save-pos* (send *pr2* :angle-vector))
-      
       )
     )
   )
