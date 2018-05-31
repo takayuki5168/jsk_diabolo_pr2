@@ -14,8 +14,8 @@ public:
 			     past_pos_x_(0), past_pos_y_(0), past_pos_z_(0),
 			     min_cube_x_(0.3), max_cube_x_(1.0),
 			     min_cube_y_(-0.23), max_cube_y_(0.23),
-			     min_cube_z_(0.1), max_cube_z_(2)
-			     
+			     min_cube_z_(0.1), max_cube_z_(2),
+			     down_flag_(false)
   {
     // Subscriber
     sub_pointcloud_ = pnh_.subscribe("/tf_transform_cloud/output", 1, &CalcTossDiaboloPosNode::messageCallback, this);
@@ -97,32 +97,32 @@ private:
       //std::cout << "[pos] " << sum_diabolo_x / diabolo_cnt << " " << sum_diabolo_y / diabolo_cnt << " " << sum_diabolo_z / diabolo_cnt << std::endl;
 
       /*
-       * 落ちてきたディアボロの予測
+       * predict falling diabolo pos
        */
+      // calc now diabolo pos
       now_pos_x_ = sum_diabolo_x / diabolo_cnt;
       now_pos_y_ = sum_diabolo_y / diabolo_cnt;
       now_pos_z_ = sum_diabolo_z / diabolo_cnt;
-
-      // 落ちているかの判定
+      // judge whether diabolo is falling
       if (now_pos_z_ < past_pos_z_) {
-	down_flag = true;
+	down_flag_ = true;
       } else {
-	down_flag = false;
+	down_flag_ = false;
       }
-      /*
-      // 落ちていたら高さ1000を予測してpublish
-      if (down_flag) {
-	poses.push_back(now_pos);
-	if (poses.size() >= 2) {
-	  int s = poses.size();
-	  double p_x = (poses.at(s - 2).at(0) - poses.at(s - 1).at(0)) / (poses.at(s - 2).at(2) - poses.at(s - 1).at(2)) * (poses.at(s - 1).at(2) - 1000 / 1000.) + poses.at(s - 1).at(0);
-  	  msg_pos_x.data = p_x;
-          pub_pos_x_.publish(msg_pos_x);
+      // if falling, predict when diabolo pos z is 1000 and publish
+      if (down_flag_) {
+	poses_x_.push_back(now_pos_x_);
+	poses_y_.push_back(now_pos_y_);
+	poses_z_.push_back(now_pos_z_);	
+	if (poses_x_.size() >= 2) {
+	  int s = poses_x_.size();
+	  double p_x = (poses_x_.at(s - 2) - poses_x_.at(s - 1)) / (poses_y_.at(s - 2) - poses_y_.at(s - 1)) * (poses_z_.at(s - 1) - 1000 / 1000.) + poses_x_.at(s - 1);
+  	  msg_diabolo_pos_x.data = p_x;
+          pub_diabolo_pos_x_.publish(msg_diabolo_pos_x);
 	  //std::cerr << "[predict] " << p_x << std::endl;
-	  std::cout << "[pos] " << sum_x / cnt << " " << sum_y / cnt << " " << sum_z / cnt << std::endl;	  
+	  std::cout << "[pos] " << sum_diabolo_x / diabolo_cnt << " " << sum_diabolo_y / diabolo_cnt << " " << sum_diabolo_z / diabolo_cnt << std::endl;	  
 	}
       }
-      */
       past_pos_x_ = now_pos_x_;
       past_pos_y_ = now_pos_y_;
       past_pos_z_ = now_pos_z_;            
@@ -155,11 +155,11 @@ private:
   double min_cube_y_, max_cube_y_;
   double min_cube_z_, max_cube_z_;
 
-  //std::vector<std::array<float, 3>> poses;
+  std::vector<double> poses_x_, poses_y_, poses_z_;
   double now_pos_x_, now_pos_y_, now_pos_z_;  
   double past_pos_x_, past_pos_y_, past_pos_z_;
 
-  bool down_flag = false;
+  bool down_flag_;
 };
 
 int main(int argc, char** argv)
