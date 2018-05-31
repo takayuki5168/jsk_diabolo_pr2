@@ -30,6 +30,14 @@
 ;; ;;rosbag を取る
 ;; rosbag record -O diabolo0.bag  /diabolo_marker/diabolo_marker /diabolo_marker/diabolo_cube_marker /calc_idle_diabolo_state/points /calc_idle_diabolo_state/pitch_points /tf
 
+
+;;  TODO
+;;    :angle-vectorが遅い
+;;      :angle-vectorのbenchを取る
+;;      topicに直接publishする
+;;    falling diaboloの予測
+;;    toss
+
 (defun init ()
   (setq *idle-diabolo-pitch* 0)
   (setq *idle-diabolo-yaw* 0)
@@ -250,7 +258,7 @@
 
    (setq *past-time* *now-time*)
    (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-   (print (- *now-time* *past-time*))
+   (print (list "one loop time" (- *now-time* *past-time*)))
    
    ;; subscribe
    (ros::spin-once "toss")
@@ -266,7 +274,7 @@
 
    ;; :angle-vector
    (setq *toss-ec* (toss-control *toss-control-y-diff*))
-   (send *ri* :angle-vector *toss-ec* 500 :default-controller 0 :min-time 0.3)
+   (bench (send *ri* :angle-vector *toss-ec* 500 :default-controller 0 :min-time 0.3))
    )
 
   (send *ri* :angle-vector *toss-start-pos* 3000)
@@ -362,7 +370,8 @@
      (if (eq pitch-valid nil)
 	 (setq *idle-control-x-diff* 0)
        )
-     (send *ri* :angle-vector (idle-control *idle-control-x-diff*) 1500) ;;800)
+     (setq *idle-ec* (idle-control *idle-control-x-diff*))     
+     (bench (send *ri* :angle-vector *idle-ec* 1500)) ;;800)
      )
 
    (progn ;; yaw
