@@ -27,9 +27,9 @@
       ;; left hand
       (speak-jp "左手にスティックを")
       (send *ri* :stop-grasp :larm)
-      (unix::usleep 3000000)            
-      (wait-for-hand-impact :larm)      
-      (send *ri* :start-grasp :larm)      
+      (unix::usleep 3000000)
+      (wait-for-hand-impact :larm)
+      (send *ri* :start-grasp :larm)
 
       ;; set diabolo
       (speak-jp "ディアボロを紐に一周巻いてください")
