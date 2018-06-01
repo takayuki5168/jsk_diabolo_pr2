@@ -1,39 +1,19 @@
-;; ;;idle用launchファイル群
-;; idle_diabolo.launch
-;;   ;;30FPS出るpointsをpublish
-;;   roslaunch relay_kinect.launch ;;25Hz
-;;
-;;   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint ;;25Hz
-;;
-;;   ;;ディアボロの傾きを計算
-;;   rosrun pr2_juggle calc_idle_diabolo_state ;;25Hz
+;; idle_diabolo.launch   ;;idle用launchファイル群
+;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
+;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
+;;   rosrun pr2_juggle calc_idle_diabolo_state   ;;ディアボロの傾きを計算
 
-;; ;;toss用launchファイル群
-;; toss_diabolo.launch
-;;   ;;30FPS出るpointsをpublish
-;;   roslaunch relay_kinect.launch ;;25Hz
-;;
-;;   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint ;;25Hz
-;;
-;;   ;;ディアボロの座標を計算
-;;   rosrun pr2_juggle calc_toss_diabolo_pos ;;25Hz
+;; toss_diabolo.launch   ;;toss用launchファイル群
+;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
+;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
+;;   rosrun pr2_juggle calc_toss_diabolo_pos   ;;ディアボロの座標を計算
 
+;; python state-input-logger.py   ;;システム同定のためのロガー
 
-;; ;;システム同定のためのロガー
-;; python state-input-logger.py
-
-
-;; sudo service chrony restart
-
-;; ;;rosbag を取る
-;; rosbag record -O diabolo0.bag  /diabolo_marker/diabolo_marker /diabolo_marker/diabolo_cube_marker /calc_idle_diabolo_state/points /calc_idle_diabolo_state/pitch_points /tf
-
+;; rosbag record -O diabolo0.bag  /diabolo_marker/diabolo_marker /diabolo_marker/diabolo_cube_marker /calc_idle_diabolo_state/points /calc_idle_diabolo_state/pitch_points /tf   ;;rosbag を取る
 
 ;;  TODO
 ;;    :angle-vectorが遅い
-;;      :angle-vectorのbenchを取る
 ;;      topicに直接publishする
 ;;    falling diaboloの予測
 ;;    toss
@@ -43,8 +23,6 @@
   (setq *idle-diabolo-yaw* 0)
   
   (setq *toss-diabolo-x* 0)
-  (setq *toss-diabolo-y* 0)
-  (setq *toss-diabolo-z* 0)
   (setq *toss-diabolo-x-predict* 0)  
   
   (setq *particle-system-input-arm* 0)
@@ -68,16 +46,9 @@
   
   ;; subscribe toss diabolo pos
   (ros::create-nodehandle "toss")
-  (ros::subscribe "calc_toss_diabolo_pos/pos_float" std_msgs::Float64MultiArray
+  (ros::subscribe "calc_toss_diabolo_pos/diabolo_pos_x" std_msgs::Float64
 		  #'(lambda (msg) (progn
-				    (setq *toss-diabolo-x* (elt (send msg :data) 0))
-				    (setq *toss-diabolo-y* (elt (send msg :data) 1))
-				    (setq *toss-diabolo-z* (elt (send msg :data) 2))				    				    
-				    ))
-		  :groupname "toss")
-  (ros::subscribe "calc_toss_diabolo_pos/pos_x" std_msgs::Float64
-		  #'(lambda (msg) (progn
-				    (setq *toss-diabolo-x-predict* (send msg :data))
+				    (setq *toss-diabolo-x* (send msg :data))
 				    ))
 		  :groupname "toss")
   
@@ -94,6 +65,8 @@
   ;; publish whether idle or not
   (ros::advertise "idle" std_msgs::float64 1)
 
+  ;; publish larm
+  ;;(ros::advertise "/l_arm_controller/follow_joint_trajectory/goal" control_msgs::FollowJointTrajectoryActionGoal 1)  
   
   (load "package://pr2eus/pr2-interface.l")
   (pr2-init)
@@ -167,45 +140,36 @@
     (progn ;; toss CAUTION for purple stick
       (send *pr2* :angle-vector #f(50.0 16.191 44.0774 31.227 -101.578 295.967 -52.3229 -46.5188 -16.6466 44.8379 -31.9883 -101.951 -272.998 -97.2327 394.953 0.0 5.0))
       (send *pr2* :head-neck-p :joint-angle 5)
-      
-      (setq *toss-start-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -350 850))) ;; 500 -350 750)))
+
+      ;; start
+      (setq *toss-start-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -350 850))) ;; 500 -350 850)))
       (send *toss-start-right-cube* :rotate (* pi 0.5) :x)
       (send *toss-start-right-cube* :rotate (* pi 0.5) :z)
       (send *toss-start-right-cube* :rotate (* pi -0.4) :y)
       (send *pr2* :rarm :inverse-kinematics *toss-start-right-cube*)
-      (setq *toss-start-left-cube* (make-cube 100 100 100 :pos (float-vector 500 350 850))) ;; 500 350 750)))
+      (setq *toss-start-left-cube* (make-cube 100 100 100 :pos (float-vector 500 350 850))) ;; 500 350 850)))
       (send *toss-start-left-cube* :rotate (* pi -0.5) :x)
       (send *toss-start-left-cube* :rotate (* pi -0.5) :z)
       (send *toss-start-left-cube* :rotate (* pi -0.4) :y)
       (send *pr2* :larm :inverse-kinematics *toss-start-left-cube*)
       (setq *toss-start-pos* (send *pr2* :angle-vector))
-      ;;
-      ;;;;(setq *toss-mid-right-cube* (make-cube 100 100 100 :pos (float-vector 450 -450 1200)))
-      ;;;;(send *toss-mid-right-cube* :rotate (* pi 0.5) :x)
-      ;;;;(send *toss-mid-right-cube* :rotate (* pi 0.5) :z)
-      ;;;;;;(send *toss-mid-right-cube* :rotate (* pi 0.2) :y)                        
-      ;;;;(send *pr2* :rarm :inverse-kinematics *toss-mid-right-cube*)
-      ;;;;(setq *toss-mid-left-cube* (make-cube 100 100 100 :pos (float-vector 450 450 1200)))
-      ;;;;(send *toss-mid-left-cube* :rotate (* pi -0.5) :x)
-      ;;;;(send *toss-mid-left-cube* :rotate (* pi -0.5) :z)
-      ;;;;;;(send *toss-mid-left-cube* :rotate (* pi 0.3) :y)                              
-      ;;;;(send *pr2* :larm :inverse-kinematics *toss-mid-left-cube*)
-      ;;;;(setq *toss-mid-pos* (send *pr2* :angle-vector))
-      ;;
-      (setq *toss-goal-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -730 1250))) ;; 500 -730 1250
+
+      ;; goal
+      (setq *toss-goal-right-cube* (make-cube 100 100 100 :pos (float-vector 500 -740 1250))) ;; 500 -730 1250
       (send *toss-goal-right-cube* :rotate (* pi 0.5) :x)
       (send *toss-goal-right-cube* :rotate (* pi 0.5) :z)
       (send *toss-goal-right-cube* :rotate (* pi -0.4) :y)
       ;;(send *toss-goal-right-cube* :rotate (* pi -0.2) :x)                              
       (send *pr2* :rarm :inverse-kinematics *toss-goal-right-cube*)
-      (setq *toss-goal-left-cube* (make-cube 100 100 100 :pos (float-vector 500 730 1250))) ;; 500 730 1250
+      (setq *toss-goal-left-cube* (make-cube 100 100 100 :pos (float-vector 500 740 1250))) ;; 500 730 1250
       (send *toss-goal-left-cube* :rotate (* pi -0.5) :x)
       (send *toss-goal-left-cube* :rotate (* pi -0.5) :z)
       (send *toss-goal-left-cube* :rotate (* pi -0.4) :y)
       ;;(send *toss-goal-left-cube* :rotate (* pi 0.2) :x)
       (send *pr2* :larm :inverse-kinematics *toss-goal-left-cube*)
       (setq *toss-goal-pos* (send *pr2* :angle-vector))
-      
+
+      ;; save
       (setq *toss-save-right-cube* (make-cube 100 100 100 :pos (float-vector 580 -720 1000))) ;; 580 -720
       (send *toss-save-right-cube* :rotate (* pi 0.5) :x)
       (send *toss-save-right-cube* :rotate (* pi 0.5) :z)
@@ -235,26 +199,27 @@
 (defun toss-only ()
   ;;(send *ri* :angle-vector *toss-start-pos* 3000)
   ;;(send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.1)  
-  (send *ri* :wait-interpolation-smooth 450)  
+  (send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.2)    
+  (send *ri* :wait-interpolation-smooth 250)  
   (send *ri* :angle-vector *toss-save-pos* 800)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *toss-start-pos* 3000)  
+  ;;(send *ri* :wait-interpolation)
+  ;;(send *ri* :angle-vector *toss-start-pos* 3000)  
   )
 
 (defun toss ()
-  (send *ri* :angle-vector *toss-start-pos* 3000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.1)  
-  (send *ri* :wait-interpolation-smooth 500)  
-  (send *ri* :angle-vector *toss-save-pos* 800)
+  ;;(send *ri* :angle-vector *toss-start-pos* 3000)
+  ;;(send *ri* :wait-interpolation)
+  ;;(send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.1)  
+  ;;(send *ri* :wait-interpolation-smooth 500)  
+  ;;(send *ri* :angle-vector *toss-save-pos* 800)
 
   (setq *toss-max-y-diff* 100)
   (setq *toss-min-y-diff* -300)  
 
   (setq *now-time* 0)
+  (setq *toss-cnt* 0)
   (do-until-key
-
+   (setq *toss-cnt* (+ *toss-cnt* 1))
    (setq *past-time* *now-time*)
    (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
    (print (list "one loop time" (- *now-time* *past-time*)))
@@ -263,7 +228,7 @@
    (ros::spin-once "toss")
 
    ;; control
-   (setq *toss-control-y-diff* (- (* *toss-diabolo-x-predict* 1000) 580))
+   (setq *toss-control-y-diff* (- (* *toss-diabolo-x* 1000) 580))
 
    ;; max min of control diff
    (if (> *toss-control-y-diff* *toss-max-y-diff*)
@@ -273,10 +238,19 @@
 
    ;; :angle-vector
    (setq *toss-ec* (toss-control *toss-control-y-diff*))
-   (bench (send *ri* :angle-vector *toss-ec* 500 :default-controller 0 :min-time 0.3))
+   (send *pr2* :angle-vector *toss-ec*)
+   ;;(toss-control *toss-control-y-diff*)
+   ;;(print (list *toss-diabolo-x* *toss-control-y-diff*))
+   ;;(print *toss-ec*)   
+   ;;(print (send *pr2* :larm :angle-vector))
+   ;;(bench (send *ri* :angle-vector *toss-ec* 500 :default-controller 0 :min-time 0.3))
+   (if (eq (mod *toss-cnt* 5) 0)
+       (bench (progn (publish-left-angle-vector 700)  (publish-right-angle-vector 700)))
+     )
    )
-
-  (send *ri* :angle-vector *toss-start-pos* 3000)
+  
+  (send *pr2* :angle-vector *toss-start-pos*)
+  (bench (progn (publish-left-angle-vector 3000)  (publish-right-angle-vector 3000)))
   )
 
 ;;
@@ -437,3 +411,69 @@
       )
     )
   )
+
+;;(defun publish-left-angle-vector (time)   ;; after solving ik
+;;  (setq *idle-angle-vector-joint-names* (mapcar #'(lambda (val) (send (send val :joint) :name)) (send *pr2* :larm)))  
+;;  (setq *idle-angle-vector-positions* (map float-vector #'deg2rad (send *pr2* :larm :angle-vector)))
+;;  (setq *idle-angle-vector-time* time)
+;;
+;;  ;; init msg
+;;  (setq *idle-angle-vector-msg* (instance control_msgs::FollowJointTrajectoryActionGoal :init))
+;;
+;;  ;; assign data to msg
+;;  (setq *ros-time-sec* (send (send (ros::time) :now) :sec))
+;;  (setq *ros-time-nsec* (send (send (ros::time) :now) :nsec))  
+;;  (let ((i (instance trajectory_msgs::JointTrajectoryPoint :init)))
+;;    (send i :positions  *idle-angle-vector-positions*)
+;;    (send i :velocities  #f(0.0 0.0 0.0 0.0 0.0 0.0 0.0))
+;;    (send (send i :time_from_start) :sec (/ *idle-angle-vector-time* 1000))
+;;    (send (send i :time_from_start) :nsec (- *idle-angle-vector-time* (* (/ *idle-angle-vector-time* 1000) 1000)))
+;;    (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :sec *ros-time-sec*)
+;;    (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :nsec *ros-time-nsec*)
+;;    (send *idle-angle-vector-msg* :goal :trajectory :points (list i)) ;; TODO
+;;    )
+;;
+;;  (send *idle-angle-vector-msg* :header :seq 1)
+;;  (send (send (send *idle-angle-vector-msg* :header) :stamp)
+;;	:sec *ros-time-sec*)
+;;  (send (send (send *idle-angle-vector-msg* :header) :stamp)
+;;	:nsec *ros-time-nsec*)
+;;
+;;  (send *idle-angle-vector-msg*
+;;	:goal :trajectory :joint_names *idle-angle-vector-joint-names*)
+;;
+;;  (ros::publish "/l_arm_controller/follow_joint_trajectory/goal" *idle-angle-vector-msg*)
+;;  )
+;;
+;;(defun publish-right-angle-vector (time)   ;; after solving ik
+;;  (setq *idle-angle-vector-joint-names* (mapcar #'(lambda (val) (send (send val :joint) :name)) (send *pr2* :rarm)))  
+;;  (setq *idle-angle-vector-positions* (map float-vector #'deg2rad (send *pr2* :rarm :angle-vector)))
+;;  (setq *idle-angle-vector-time* time)
+;;
+;;  ;; init msg
+;;  (setq *idle-angle-vector-msg* (instance control_msgs::FollowJointTrajectoryActionGoal :init))
+;;
+;;  ;; assign data to msg
+;;  (setq *ros-time-sec* (send (send (ros::time) :now) :sec))
+;;  (setq *ros-time-nsec* (send (send (ros::time) :now) :nsec))  
+;;  (let ((i (instance trajectory_msgs::JointTrajectoryPoint :init)))
+;;    (send i :positions  *idle-angle-vector-positions*)
+;;    (send i :velocities  #f(0.0 0.0 0.0 0.0 0.0 0.0 0.0))
+;;    (send (send i :time_from_start) :sec (/ *idle-angle-vector-time* 1000))
+;;    (send (send i :time_from_start) :nsec (- *idle-angle-vector-time* (* (/ *idle-angle-vector-time* 1000) 1000)))
+;;    (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :sec *ros-time-sec*)
+;;    (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :nsec *ros-time-nsec*)
+;;    (send *idle-angle-vector-msg* :goal :trajectory :points (list i)) ;; TODO
+;;    )
+;;
+;;  (send *idle-angle-vector-msg* :header :seq 1)
+;;  (send (send (send *idle-angle-vector-msg* :header) :stamp)
+;;	:sec *ros-time-sec*)
+;;  (send (send (send *idle-angle-vector-msg* :header) :stamp)
+;;	:nsec *ros-time-nsec*)
+;;
+;;  (send *idle-angle-vector-msg*
+;;	:goal :trajectory :joint_names *idle-angle-vector-joint-names*)
+;;
+;;  (ros::publish "/r_arm_controller/follow_joint_trajectory/goal" *idle-angle-vector-msg*)
+;;  )

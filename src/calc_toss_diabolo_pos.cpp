@@ -84,10 +84,15 @@ private:
     msg_diabolo_points.header.stamp = ros::Time::now();
     pub_diabolo_points_.publish(msg_diabolo_points);
 
+
     /*
      * calculate diabolo pos, pos_x and publish
      */
     if (diabolo_cnt != 0) {
+      msg_diabolo_pos_x.data = sum_diabolo_x / diabolo_cnt;
+      pub_diabolo_pos_x_.publish(msg_diabolo_pos_x);
+    
+      diabolo_pos.clear();
       diabolo_pos.push_back(pcl::PointXYZ(sum_diabolo_x / diabolo_cnt, sum_diabolo_y / diabolo_cnt, sum_diabolo_z / diabolo_cnt));
       pcl::toROSMsg(diabolo_pos, msg_diabolo_pos);
       msg_diabolo_pos.header.frame_id = "/base_footprint";
@@ -117,8 +122,8 @@ private:
 	if (poses_x_.size() >= 2) {
 	  int s = poses_x_.size();
 	  double p_x = (poses_x_.at(s - 2) - poses_x_.at(s - 1)) / (poses_y_.at(s - 2) - poses_y_.at(s - 1)) * (poses_z_.at(s - 1) - 1000 / 1000.) + poses_x_.at(s - 1);
-  	  msg_diabolo_pos_x.data = p_x;
-          pub_diabolo_pos_x_.publish(msg_diabolo_pos_x);
+  	  //msg_diabolo_pos_x.data = p_x;
+          //pub_diabolo_pos_x_.publish(msg_diabolo_pos_x);
 	  //std::cerr << "[predict] " << p_x << std::endl;
 	  std::cout << "[pos] " << sum_diabolo_x / diabolo_cnt << " " << sum_diabolo_y / diabolo_cnt << " " << sum_diabolo_z / diabolo_cnt << std::endl;	  
 	}
