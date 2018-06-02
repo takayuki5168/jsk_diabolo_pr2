@@ -7,7 +7,6 @@ from keras.layers import Dense, Activation, Dropout, BatchNormalization
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.optimizers import Adam, RMSprop
 
-import rospy
 from std_msgs.msg import Float64MultiArray
 
 LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
@@ -91,7 +90,7 @@ class DiaboloSystem:
 
     def train(self):
         # split data to train and test
-        x_train, x_test, y_train, y_test = cross_validation.train_test_split(np.array(self.X), np.array(self.Y), test_size=int(len(self.X) * 0.2), shuffle=False)
+        x_train, x_test, y_train, y_test = cross_validation.train_test_split(np.array(self.X), np.array(self.Y), test_size=int(len(self.X) * 0.2))#), shuffle=False)
 
         # make model and train
         model = self.make_model()
@@ -104,6 +103,8 @@ class DiaboloSystem:
         model.save('../log/model/model.h5')
 
         # predict of x_test and write log
+        #x_test = np.array(self.X[int(len(self.X) * 3 / 4):]) # TODO
+        #y_test = np.array(self.Y[int(len(self.X) * 3 / 4):]) # TODO
         self.y_pred = model.predict(x_test)
         f_arm_pitch_test = open('output_arm_pitch_test.log', 'w')
         f_base_yaw_test = open('output_base_yaw_test.log', 'w')
@@ -135,12 +136,6 @@ class DiaboloSystem:
         self.pitch = 0
         self.yaw = 0
         
-        # init ros
-        rospy.init_node("DiaboloSystem")
-        rospy.Subscriber("calc_diabolo_state/diabolo_state", Float64MultiArray, self.callbackDiaboloState)
-        pub_arm = rospy.Publisher('/diabolo_system/arm', Float64, queue_size=1)
-        pub_base = rospy.Publisher('/diabolo_system/base', Float64, queue_size=1)                
-        
         # load model
         model = load_model('../log/model/model.h5')
 
@@ -152,10 +147,8 @@ class DiaboloSystem:
             self.pitch = next_state[0]
             self.yaw = next_state[1]
 
-            
-            pub_arm.publish()
-            pub_base.publish()
-            
+
+'''            
     def callbackDiaboloState(self, msg):
         state_pitch = msg.data[0]
         state_yaw = msg.data[1]
@@ -166,6 +159,7 @@ class DiaboloSystem:
         x_past[0][1] = self.past_state[-1 * self.DELTA_STEP][1]
         x_past[0][2] = self.past_state[-2 * self.DELTA_STEP][0]
         x_past[0][3] = self.past_state[-2 * self.DELTA_STEP][1]
+'''
 
 if __name__ == '__main__':
     ds = DiaboloSystem()
