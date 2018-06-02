@@ -103,11 +103,11 @@ class DiaboloSystem:
         model.save('../log/model/model.h5')
 
         # predict of x_test and write log
-        #x_test = np.array(self.X[int(len(self.X) * 3 / 4):]) # TODO
-        #y_test = np.array(self.Y[int(len(self.X) * 3 / 4):]) # TODO
+        x_test = np.array(self.X[int(len(self.X) * 3 / 4):]) # TODO TODO TODO
+        y_test = np.array(self.Y[int(len(self.X) * 3 / 4):]) # TODO TODO TODO
         self.y_pred = model.predict(x_test)
         f_arm_pitch_test = open('output_arm_pitch_test.log', 'w')
-        f_base_yaw_test = open('output_base_yaw_test.log', 'w')
+        f_base_yaw_test = open('output_base_yaw_test.log', 'w')ne
         f_test = open('output_test.log', 'w')                
         for i in range(1, len(self.y_pred) - 1):
             f_arm_pitch_test.write('{} {} {}\n'.format(x_test[i - 1][4], y_test[i][0], self.y_pred[i][0]))            

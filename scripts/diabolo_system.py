@@ -12,7 +12,7 @@ import random
 import numpy as np
 
 import chainer
-from chainer import Variable, Link, Chain, ChainList, optimizers
+from chainer import Variable, Link, Chain, ChainList, optimizers, serializers
 import chainer.functions as F
 import chainer.links as L
 from chainer.functions.loss.mean_squared_error import mean_squared_error
@@ -33,16 +33,14 @@ LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
 class MyChain(Chain):
     def __init__(self):
         super(MyChain, self).__init__(   # FIX
-            l1=L.Linear(6, 100),
-            l2=L.Linear(100, 100),            
-            l3=L.Linear(100, 2)
+            l1=L.Linear(6, 5),
+            l2=L.Linear(2)
             )
         
     def forward(self, x):   # FIX
-        h1 = F.sigmoid(self.l1(x))
-        h2 = F.sigmoid(self.l2(h1))       
-        h3 = self.l3(h2)   # F.relu(self.l2(h1))
-        return h3
+        h = F.relu(self.l1(x))
+        o = self.l2(h)
+        return o
 
     def __call__(self, x):
         self.res = self.forward(x)
@@ -74,7 +72,7 @@ class DiaboloSystem():
         self.state_ref = [0., 0.]   # FIX
 
         self.train_test_ratio = 0.8   # FIX
-        self.batch_size = 50   # FIX
+        self.batch_size = 1000   # FIX
 
         rospy.init_node("DiaboloSystem")
         rospy.Subscriber("calc_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state)
@@ -130,7 +128,7 @@ class DiaboloSystem():
         s = int(len(self.X) * self.train_test_ratio)
         for i in range(len(self.X) - s):
             x.append(self.X[s + i])
-            y.append(self.Y[s + i])        
+            y.append(self.Y[s + i])
         return np.array(x), np.array(y)
         
     def train(self, loop=1000, plot_loss=True):
@@ -157,7 +155,13 @@ class DiaboloSystem():
             plt.plot(losses)
             plt.yscale('log')
             plt.show()
+            
+    def save_model(self):
+        serializers.save_hdf5('../log/diabolo_system/mymodel.h5', self.model)
 
+    def load_model(self):
+        serializers.load_hdf5('../log/diabolo_system/mymodel.h5', self.model)
+        
     def calc_next_state(self):
         x, y = self.get_test()        
         x_ = Variable(x.astype(np.float32).reshape(len(x),6))
@@ -169,7 +173,7 @@ class DiaboloSystem():
         loss.backward()
         #self.optimizer.update()
         
-        with open('predict.log', 'w') as f:
+        with open('../log/diabolo_system/predict.log', 'w') as f:
             for i in range(len(x_)):
                 f.write('{} {} {} {} {} {}\n'.format(x_[i][4].data, x_[i][5].data, t_[i][0].data, t_[i][1].data, self.model.res[i][0].data, self.model.res[i][1].data))
         
@@ -179,7 +183,7 @@ class DiaboloSystem():
         pub_arm.publish()
         pub_base.publish()
         pass
-    
+
     def callback_for_state(self):
         pass
 
@@ -198,16 +202,44 @@ class DiaboloSystem():
             
             losses.append(loss.data)    
 
+    def simulate(self):
+        init_state = [0, 0]
+        past_states = [init_state for i in range(10)]
+        now_input = [0.8, 0]   #[0.75, 0]        
 
-ds = DiaboloSystem()
-ds.load_data([LOG_FILES[0]])
-ds.arrange_data()
-ds.make_model()
-ds.train(1000)
-ds.calc_next_state()
+        with open('../log/diabolo_system/simulate.log', 'w') as f:
+            for i in range(100):
+                now_x = Variable(np.array([past_states[-1 * self.DELTA_STEP], past_states[-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1, 6))
+        
+                self.model(now_x)
+                res = self.model.res
+                now_state = [res[0][0].data, res[0][1].data]
 
-# chain.calc_next_state()
-# chain.optimize_input()
+                f.write('{} {} {} {}\n'.format(now_input[0], now_input[1], now_state[0], now_state[1]))
+                past_states.append(now_state)
+
+            
+
+if __name__ == '__main__':
+    train_flag = False
+    
+    ds = DiaboloSystem()
+    
+    if train_flag:
+        ds.load_data(LOG_FILES)
+        ds.arrange_data()
+        ds.make_model()
+        ds.train(1000)
+        ds.save_model()
+    else:
+        ds.load_data(LOG_FILES)
+        ds.arrange_data()
+        ds.make_model()    
+        ds.load_model()
+        
+    ds.calc_next_state()
+    ds.simulate()
+    #ds.optimize_input()        
 
 exit()
 
