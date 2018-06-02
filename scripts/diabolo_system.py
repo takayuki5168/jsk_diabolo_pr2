@@ -33,7 +33,7 @@ LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
 class MyChain(Chain):
     def __init__(self):
         super(MyChain, self).__init__(   # FIX
-            l1=L.Linear(6, 5),
+            l1=L.Linear(6, 10),
             l2=L.Linear(2)
             )
         
@@ -205,7 +205,7 @@ class DiaboloSystem():
     def simulate(self):
         init_state = [0, 0]
         past_states = [init_state for i in range(10)]
-        now_input = [0.8, 0]   #[0.75, 0]        
+        now_input = [0.85, 0]   #[0.75, 0]        
 
         with open('../log/diabolo_system/simulate.log', 'w') as f:
             for i in range(100):
