@@ -9,7 +9,6 @@
 # chainerは数値微分？reluはどうやって登録？
 
 # increase log_files
-# implement input_optimizer
 
 import random
 import numpy as np
@@ -173,7 +172,7 @@ class DiaboloSystem():
     def load_model(self):
         serializers.load_hdf5('../log/diabolo_system/mymodel.h5', self.model)
         
-    def calc_next_state(self):
+    def test(self):
         x, y = self.get_test()        
         x_ = Variable(x.astype(np.float32).reshape(len(x),6))
         t_ = Variable(y.astype(np.float32).reshape(len(y),2))
@@ -189,13 +188,17 @@ class DiaboloSystem():
                 f.write('{} {} {} {} {} {}\n'.format(x_[i][4].data, x_[i][5].data, t_[i][0].data, t_[i][1].data, self.model.res[i][0].data, self.model.res[i][1].data))
         print(loss.data)
 
-    def realtime(self):
-        pub_arm.publish()
-        pub_base.publish()
-        pass
+    def realtime_feedback(self):
+        while True:
+            pub_arm.publish(self.now_input[0])
+            pub_base.publish(self.now_input[1])
 
-    def callback_for_state(self):
-        pass
+    def callback_for_state(self, msg):
+        if msg.data[0] == np.nan:
+            msg.data[0] = self.past_states[-1][0]
+        if msg.data[1] == np.nan:
+            msg.data[1] = self.past_states[-1][1]            
+        self.past_states.append([msg.data[0], msg.data[1]])
 
     def optimize_input(self): # TODO add max input restriction
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
@@ -231,7 +234,8 @@ class DiaboloSystem():
                 self.past_states.append(now_state)
 
 if __name__ == '__main__':
-    train_flag = True
+    train_flag = False
+    action = 1   # 0:test   1:simulate   2:realtime feedback
     
     ds = DiaboloSystem()
     
@@ -246,9 +250,14 @@ if __name__ == '__main__':
         ds.arrange_data()
         ds.make_model()    
         ds.load_model()
-        
-    ds.calc_next_state()
-    ds.simulate()
+
+     
+    if action == 0:   # test
+        ds.test()
+    elif action == 1   # simulate
+        ds.simulate()
+    elif action == 2   # realtime feedback
+        ds.realtime_feedback
 
 
 
