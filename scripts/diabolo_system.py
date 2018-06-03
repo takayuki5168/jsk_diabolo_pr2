@@ -8,6 +8,9 @@
 #      ぎりぎり許せるくらい...
 # chainerは数値微分？reluはどうやって登録？
 
+# increase log_files
+# implement input_optimizer
+
 import random
 import numpy as np
 
@@ -33,7 +36,7 @@ LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
 class MyChain(Chain):
     def __init__(self):
         super(MyChain, self).__init__(   # FIX
-            l1=L.Linear(6, 10),
+            l1=L.Linear(6, 3),
             l2=L.Linear(2)
             )
         
@@ -69,11 +72,19 @@ class DiaboloSystem():
         
         self.VAR_NUM = max(self.INPUT_NN_DIM, self.OUTPUT_NN_DIM)
 
-        self.state_ref = [0., 0.]   # FIX
+        self.state_ref = [-3., 0.]   # FIX
 
         self.train_test_ratio = 0.8   # FIX
         self.batch_size = 1000   # FIX
 
+        self.init_state = [0, 0]
+        self.past_states = [self.init_state for i in range(10)]
+        self.now_input = [0.75, 0]
+        
+        self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.001]
+        self.MAX_INPUT_RESTRICTION = [0.03, 0.001]   # TODO
+        self.MIN_INPUT_RESTRICTION = [0.03, 0.001]   # TODO        
+        
         rospy.init_node("DiaboloSystem")
         rospy.Subscriber("calc_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state)
         self.pub_arm = rospy.Publisher('/diabolo_system/arm', Float64, queue_size=1)
@@ -176,7 +187,6 @@ class DiaboloSystem():
         with open('../log/diabolo_system/predict.log', 'w') as f:
             for i in range(len(x_)):
                 f.write('{} {} {} {} {} {}\n'.format(x_[i][4].data, x_[i][5].data, t_[i][0].data, t_[i][1].data, self.model.res[i][0].data, self.model.res[i][1].data))
-        
         print(loss.data)
 
     def realtime(self):
@@ -187,41 +197,41 @@ class DiaboloSystem():
     def callback_for_state(self):
         pass
 
-    def optimize_input(self):
-        x = Variable(np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]).astype(np.float32).reshape(1,6)) # TODO random value is past state
+    def optimize_input(self): # TODO add max input restriction
+        x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
-        losses =[]        
-        for i in range(1000):
-            print i
+        for i in range(10): # optimize loop
             self.model(x)
             loss = self.model.loss(t)
             loss.backward()
             
-            print x, x.grad_var
             x = Variable((x - 0.01 * x.grad_var).data)
-            
-            losses.append(loss.data)    
+            now_input = [x[0][4].data, x[0][5].data]
+            for j in range(self.PAST_INPUT_NUM * self.INPUT_DIM):
+                if now_input[j] - self.now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
+                    now_input[j] = np.float32(self.now_input[j] + self.MAX_INPUT_DIFF_RESTRICTION[j])
+                elif self.now_input[j] - now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
+                    now_input[j] = np.float32(self.now_input[j] - self.MAX_INPUT_DIFF_RESTRICTION[j])
+            x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
+
+        self.now_input = [float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 0].data), float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 1].data)]
 
     def simulate(self):
-        init_state = [0, 0]
-        past_states = [init_state for i in range(10)]
-        now_input = [0.85, 0]   #[0.75, 0]        
-
         with open('../log/diabolo_system/simulate.log', 'w') as f:
-            for i in range(100):
-                now_x = Variable(np.array([past_states[-1 * self.DELTA_STEP], past_states[-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1, 6))
+            for i in range(1000): # simulation loop
+                print('simulate {}'.format(i))
+                self.optimize_input()
+                now_x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1, 6))
         
                 self.model(now_x)
                 res = self.model.res
                 now_state = [res[0][0].data, res[0][1].data]
 
-                f.write('{} {} {} {}\n'.format(now_input[0], now_input[1], now_state[0], now_state[1]))
-                past_states.append(now_state)
-
-            
+                f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], now_state[0], now_state[1]))
+                self.past_states.append(now_state)
 
 if __name__ == '__main__':
-    train_flag = False
+    train_flag = True
     
     ds = DiaboloSystem()
     
@@ -229,7 +239,7 @@ if __name__ == '__main__':
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()
-        ds.train(1000)
+        ds.train(1000, False)
         ds.save_model()
     else:
         ds.load_data(LOG_FILES)
@@ -239,14 +249,12 @@ if __name__ == '__main__':
         
     ds.calc_next_state()
     ds.simulate()
-    #ds.optimize_input()        
-
-exit()
 
 
 
 
 
+'''
 if losses[-1] > 0.01:
     exit()
     
@@ -281,5 +289,4 @@ with open('po.log', 'w') as f:
 plt.plot(losses_)
 plt.yscale('log')
 plt.show()
-
-    
+'''
