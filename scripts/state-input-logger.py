@@ -22,7 +22,7 @@ class Logger:
         self.input_base = 0
         self.vec_z = 0
 
-        rospy.Subscriber("calc_diabolo_state/diabolo_state", Float64MultiArray, self.callbackDiaboloState)
+        rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callbackDiaboloState)
         rospy.Subscriber("/base_odometry/odom", Odometry, self.callbackOdom)
 
     @staticmethod

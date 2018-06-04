@@ -62,6 +62,7 @@
   (ros::subscribe "diabolo_system/diabolo_input" std_msgs::Float64MultiArray
   		  #'(lambda (msg) (progn
 				    (setq *diabolo-system-input-arm* (elt (send msg :data) 0))
+				    (print (list "po" *diabolo-system-input-arm*))
 				    (setq *diabolo-system-input-base* (elt (send msg :data) 1))				    
 				    ))
 		  :groupname "diabolo-system")
@@ -325,7 +326,7 @@
 	 (if (eq diabolo-system t) ;; when diabolo-system
 	     (progn
 	       (setq *idle-control-x-diff* (- (* *diabolo-system-input-arm* 1000) 700))
-	       (print *diabolo-system-input-arm*)
+	       (print (list "[DiaboloSystem] input arm" *diabolo-system-input-arm*))
 	       (print *idle-control-x-diff*)
 	       )
 	   (progn

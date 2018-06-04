@@ -10,8 +10,13 @@
 # increase log_files
 
 # CHECK
+# self.init_state is [0, 0]
 # self.state_ref is [0, 0]
-#
+# action is 2
+
+# TODOTODOTODO
+# armの符号が逆、だけどなぜかpitchは収束する...
+# pitchの取得がとても遅れる
 
 import random, time
 import numpy as np
@@ -38,7 +43,7 @@ LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
 class MyChain(Chain):
     def __init__(self):
         super(MyChain, self).__init__(   # FIX
-            l1=L.Linear(6, 3),
+            l1=L.Linear(6, 1),
             l2=L.Linear(2)
             )
         
@@ -80,8 +85,9 @@ class DiaboloSystem():
         self.train_test_ratio = 0.8   # FIX
         self.batch_size = 1000   # FIX
 
-        self.init_state = [0., 0.]
-        self.past_states = [self.init_state for i in range(10)]
+        #self.init_state = [-20., 0.]
+        self.init_state = [-20., 0.]        
+        self.past_states = []
         self.now_input = [0.7, 0]
         
         self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.001]
@@ -89,7 +95,6 @@ class DiaboloSystem():
         self.MIN_INPUT_RESTRICTION = [0.60, -0.34]   # TODO        
         
         rospy.init_node("DiaboloSystem")
-        rospy.Subscriber("calc_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state)
         self.pub_input = rospy.Publisher('/diabolo_system/diabolo_input', Float64MultiArray, queue_size=1)
 
     def percentage(self, idx, loop_num):
@@ -150,6 +155,7 @@ class DiaboloSystem():
         return np.array(x), np.array(y)
         
     def train(self, loop_num=1000, plot_loss=True):
+        print('[DebugPrint] Training Start')        
         losses =[]
         for i in range(loop_num):
             self.percentage(i, loop_num)
@@ -196,8 +202,11 @@ class DiaboloSystem():
         print(loss.data)
 
     def realtime_feedback(self):
-        while True:
-            self.publish_input()
+        rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state)
+        rospy.spin()        
+        # callback_for_state
+        #   optimize_input
+        #   publish_input
 
     def publish_input(self):
         msg = Float64MultiArray()
@@ -210,12 +219,16 @@ class DiaboloSystem():
         if msg.data[1] == np.nan:
             msg.data[1] = self.past_states[-1][1]            
         self.past_states.append([msg.data[0], msg.data[1]])
+        if len(self.past_states) > self.PAST_STATE_NUM * self.DELTA_STEP:        
+            self.optimize_input()
+            print('{} {} {} {}'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
+            self.publish_input()                            
 
     # CHECK
     def optimize_input(self): # TODO add max input restriction
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
-        #start_time = time.time()        
+        loop_flag = True
         for i in range(20):    # optimize loop  loop_num is 10 == hz is 90
             self.model(x)
             loss = self.model.loss(t)
@@ -228,21 +241,27 @@ class DiaboloSystem():
                 # diff input restriction
                 if now_input[j] - self.now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
                     now_input[j] = np.float32(self.now_input[j] + self.MAX_INPUT_DIFF_RESTRICTION[j])
+                    #loop_flag = False
                 elif self.now_input[j] - now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
                     now_input[j] = np.float32(self.now_input[j] - self.MAX_INPUT_DIFF_RESTRICTION[j])
+                    #loop_flag = False                    
                 # max min input restriction
                 if now_input[j] > self.MAX_INPUT_RESTRICTION[j]:
                     now_input[j] = self.MAX_INPUT_RESTRICTION[j]
+                    #loop_flag = False                    
                 elif now_input[j] < self.MIN_INPUT_RESTRICTION[j]:
                     now_input[j] = self.MIN_INPUT_RESTRICTION[j]
+                    #loop_flag = False                    
               
             x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
+            if loop_flag == False:
+                break
 
         self.now_input = [float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 0].data), float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 1].data)]
-        #print('time : {}[s]'.format(time.time() - start_time))        
 
-    def simulate(self):
-        simulate_loop_num = 1000
+    def simulate(self, simulate_loop_num=1000):
+        self.past_states = [self.init_state for i in range(10)]
+        print('[DebugPrint] Simulation Start')        
         with open('../log/diabolo_system/simulate.log', 'w') as f:
             for i in range(simulate_loop_num):   # simulation loop
                 self.percentage(i, simulate_loop_num)
@@ -253,14 +272,13 @@ class DiaboloSystem():
                 res = self.model.res
                 now_state = [res[0][0].data, res[0][1].data]
 
-                f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], now_state[0], now_state[1]))
+                #f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], now_state[0], now_state[1]))
+                f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))                
                 self.past_states.append(now_state)
-
-                self.publish_input()
 
 if __name__ == '__main__':
     train_flag = False
-    action = 1   # 0:test  1:simulate  2:realtime feedback
+    action = 2  # 0:test  1:simulate  2:realtime feedback
     
     ds = DiaboloSystem()
 
@@ -275,11 +293,11 @@ if __name__ == '__main__':
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()    
-        ds.load_model(log_file='../log/diabolo_system/goodmodel1.h5')
+        ds.load_model(log_file='../log/diabolo_system/goodmodel2.h5')
     
     if action == 0:   # test
         ds.test()
     elif action == 1:   # simulate
-        ds.simulate()
+        ds.simulate(simulate_loop_num=300)
     elif action == 2:   # realtime feedback
-        ds.realtime_feedback
+        ds.realtime_feedback()
