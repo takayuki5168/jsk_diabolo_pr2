@@ -9,9 +9,8 @@
 # chainerは数値微分？reluはどうやって登録？
 
 # increase log_files
-# time to forward
 
-import random
+import random, time
 import numpy as np
 
 import chainer
@@ -45,6 +44,7 @@ class MyChain(Chain):
         o = self.l2(h)
         return o
 
+    # forward ans save output
     def __call__(self, x):
         self.res = self.forward(x)
 
@@ -76,7 +76,7 @@ class DiaboloSystem():
         self.train_test_ratio = 0.8   # FIX
         self.batch_size = 1000   # FIX
 
-        self.init_state = [10, 10]
+        self.init_state = [0., 0.]
         self.past_states = [self.init_state for i in range(10)]
         self.now_input = [0.7, 0]
         
@@ -86,9 +86,13 @@ class DiaboloSystem():
         
         rospy.init_node("DiaboloSystem")
         rospy.Subscriber("calc_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state)
-        self.pub_arm = rospy.Publisher('/diabolo_system/arm', Float64, queue_size=1)
-        self.pub_base = rospy.Publisher('/diabolo_system/base', Float64, queue_size=1)
+        self.pub_input = rospy.Publisher('/diabolo_system/diabolo_input', Float64MultiArray, queue_size=1)
 
+    def percentage(self, idx, loop_num):
+        split_num = 10
+        if (idx + 1) % int(loop_num / split_num) == 0:
+            print('{}% {}/{}'.format((idx + 1) * 100 / loop_num, idx + 1, loop_num))
+        
     def load_data(self, log_files):
         for log_file in log_files:
             with open(log_file, "r") as f:
@@ -141,10 +145,10 @@ class DiaboloSystem():
             y.append(self.Y[s + i])
         return np.array(x), np.array(y)
         
-    def train(self, loop=1000, plot_loss=True):
+    def train(self, loop_num=1000, plot_loss=True):
         losses =[]
-        for i in range(loop):
-            print i
+        for i in range(loop_num):
+            self.percentage(i, loop_num)
             x, y = self.get_batch_train(self.batch_size)
         
             x_ = Variable(x.astype(np.float32).reshape(self.batch_size, 6))
@@ -190,8 +194,12 @@ class DiaboloSystem():
 
     def realtime_feedback(self):
         while True:
-            pub_arm.publish(self.now_input[0])
-            pub_base.publish(self.now_input[1])
+            self.publish_input()
+
+    def publish_input(self):
+        msg = Float64MultiArray()
+        msg.data = [self.now_input[0], self.now_input[1]]
+        self.pub_input.publish(msg)
 
     def callback_for_state(self, msg):
         if msg.data[0] == np.nan:
@@ -203,33 +211,37 @@ class DiaboloSystem():
     def optimize_input(self): # TODO add max input restriction
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
-        for i in range(10): # optimize loop
+        #start_time = time.time()        
+        for i in range(20):    # optimize loop   loop_num is 10 == hz is 90
             self.model(x)
             loss = self.model.loss(t)
             loss.backward()
             
             x = Variable((x - 0.01 * x.grad_var).data)
             now_input = [x[0][4].data, x[0][5].data]
+            # apply input restriction
             for j in range(self.PAST_INPUT_NUM * self.INPUT_DIM):
-                # diff restriction
+                # diff input restriction
                 if now_input[j] - self.now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
                     now_input[j] = np.float32(self.now_input[j] + self.MAX_INPUT_DIFF_RESTRICTION[j])
                 elif self.now_input[j] - now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
                     now_input[j] = np.float32(self.now_input[j] - self.MAX_INPUT_DIFF_RESTRICTION[j])
-                # max min restriction
+                # max min input restriction
                 if now_input[j] > self.MAX_INPUT_RESTRICTION[j]:
                     now_input[j] = self.MAX_INPUT_RESTRICTION[j]
                 elif now_input[j] < self.MIN_INPUT_RESTRICTION[j]:
                     now_input[j] = self.MIN_INPUT_RESTRICTION[j]
-                    
+              
             x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
 
         self.now_input = [float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 0].data), float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 1].data)]
+        #print('time : {}[s]'.format(time.time() - start_time))        
 
     def simulate(self):
+        simulate_loop_num = 1000
         with open('../log/diabolo_system/simulate.log', 'w') as f:
-            for i in range(1000): # simulation loop
-                print('simulate {}'.format(i))
+            for i in range(simulate_loop_num): # simulation loop
+                self.percentage(i, simulate_loop_num)
                 self.optimize_input()
                 now_x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1, 6))
         
@@ -240,69 +252,30 @@ class DiaboloSystem():
                 f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], now_state[0], now_state[1]))
                 self.past_states.append(now_state)
 
+                self.publish_input()
+
 if __name__ == '__main__':
     train_flag = False
     action = 1   # 0:test   1:simulate   2:realtime feedback
     
     ds = DiaboloSystem()
-    
+
+    # train model or load model
     if train_flag:
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()
-        ds.train(1000, False)
+        ds.train(loop_num=1000, plot_loss=False)
         ds.save_model()
     else:
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()    
         ds.load_model()
-
-     
+    
     if action == 0:   # test
         ds.test()
     elif action == 1:   # simulate
         ds.simulate()
     elif action == 2:   # realtime feedback
         ds.realtime_feedback
-
-
-
-
-
-'''
-if losses[-1] > 0.01:
-    exit()
-    
-losses_ =[]
-xx = np.array([0.5, 0.5]).astype(np.float32).reshape(1,2)
-tt = np.array([0.8]).astype(np.float32).reshape(1,1)
-xxx = Variable(xx)
-ttt = Variable(tt)
-for i in range(1000):
-    print i
-    
-    loss = model(xxx, ttt)
-    loss.backward()
-    
-    print xxx, xxx.grad_var
-    xxx = Variable((xxx - 0.01 * xxx.grad_var).data)
-    
-    losses_.append(loss.data)    
-
-print model.predict(xxx)
-print model.predict(Variable(np.array([0., 0.]).astype(np.float32).reshape(1,2)))
-print model.predict(Variable(np.array([0., 1.]).astype(np.float32).reshape(1,2)))
-print model.predict(Variable(np.array([1., 0.]).astype(np.float32).reshape(1,2)))
-print model.predict(Variable(np.array([1., 1.]).astype(np.float32).reshape(1,2)))
-
-with open('po.log', 'w') as f:
-    for i in range(-10, 10):
-        for j in range(-10, 10):
-            x = Variable(np.array([i / 10., j / 10.]).astype(np.float32).reshape(1,2))
-            p = model.predict(x).data[0][0]
-            f.write('{} {} {}\n'.format(i / 10., j / 10., p))
-plt.plot(losses_)
-plt.yscale('log')
-plt.show()
-'''

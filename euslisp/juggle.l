@@ -17,6 +17,7 @@
 ;;      topicに直接publishする
 ;;    falling diaboloの予測
 ;;    toss
+;;    use local variable
 
 (defun init ()
   (setq *idle-diabolo-pitch* 0)
@@ -25,8 +26,8 @@
   (setq *toss-diabolo-x* 0)
   (setq *toss-diabolo-x-predict* 0)  
   
-  (setq *particle-system-input-arm* 0)
-  (setq *particle-system-input-base* 0)
+  (setq *diabolo-system-input-arm* 0)
+  (setq *diabolo-system-input-base* 0)
   
   (ros::load-ros-manifest "roseus")
 
@@ -56,11 +57,14 @@
   ;;(ros::subscribe "joy" sensor_msgs::Joy
   ;;		  #'(lambda (msg) (setq *joy* (send msg :axes))))
 
-  ;; subscribe ParticleSystem
-  ;;(ros::subscribe "particle_system/arm" std_msgs::float64
-  ;;		  #'(lambda (msg) (setq *particle-system-input-arm* (send msg :data))))
-  ;;(ros::subscribe "particle_system/base" std_msgs::float64
-  ;;		  #'(lambda (msg) (setq *particle-system-input-base* (send msg :data))))
+  ;; subscribe DiaboloSystem
+  (ros::create-nodehandle "diabolo-system")  
+  (ros::subscribe "diabolo_system/diabolo_input" std_msgs::Float64MultiArray
+  		  #'(lambda (msg) (progn
+				    (setq *diabolo-system-input-arm* (elt (send msg :data) 0))
+				    (setq *diabolo-system-input-base* (elt (send msg :data) 1))				    
+				    ))
+		  :groupname "diabolo-system")
 
   ;; publish whether idle or not
   (ros::advertise "idle" std_msgs::float64 1)
@@ -276,7 +280,7 @@
   (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
   )
 
-(defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t) &key (teach nil) (particle-system nil))
+(defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t) &key (teach nil) (diabolo-system nil))
   (if (eq roll-valid t)
       (progn
 	(send *ri* :angle-vector *roll-1-pos* 5000)
@@ -302,7 +306,10 @@
   (do-until-key
    ;; subscribe
    (ros::spin-once "idle")
-   
+   (if (eq diabolo-system t)
+       (ros::spin-once "diabolo-system")
+     )
+p   
    (setq idle-msg (instance std_msgs::float64 :init))   
    (send idle-msg :data 1)
    (ros::publish "idle" idle-msg)
@@ -315,10 +322,10 @@
 	   (setq *idle-control-x-diff* (* *joy-arm-input* 100))
 	   )
        (progn
-	 (if (eq particle-system t) ;; when particle-system
+	 (if (eq diabolo-system t) ;; when diabolo-system
 	     (progn
-	       (setq *idle-control-x-diff* (- (* *particle-system-input-arm* 1000) 700))
-	       (print *particle-system-input-arm*)
+	       (setq *idle-control-x-diff* (- (* *diabolo-system-input-arm* 1000) 700))
+	       (print *diabolo-system-input-arm*)
 	       (print *idle-control-x-diff*)
 	       )
 	   (progn
@@ -354,9 +361,9 @@
 	   (setq *idle-diabolo-yaw* (* *joy-base-input* 30))
 	   )
        (progn
-	 (if (eq particle-system t) ;; when particle system
+	 (if (eq diabolo-system t) ;; when diabolo system
 	     (progn
-	       (setq *idle-diabolo-yaw* (* (/ (* *particle-system-input-base* 180) 3.14) 100)) ;;TODOTODO   magic number 100
+	       (setq *idle-diabolo-yaw* (* (/ (* *diabolo-system-input-base* 180) 3.14) 1)) ;;TODOTODO   magic number 100
 	       )
 	   )
 	 )
