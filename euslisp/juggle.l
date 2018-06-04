@@ -309,7 +309,7 @@
    (if (eq diabolo-system t)
        (ros::spin-once "diabolo-system")
      )
-p   
+
    (setq idle-msg (instance std_msgs::float64 :init))   
    (send idle-msg :data 1)
    (ros::publish "idle" idle-msg)

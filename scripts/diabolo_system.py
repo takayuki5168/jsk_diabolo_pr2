@@ -212,7 +212,7 @@ class DiaboloSystem():
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
         #start_time = time.time()        
-        for i in range(20):    # optimize loop   loop_num is 10 == hz is 90
+        for i in range(20):    # optimize loop  loop_num is 10 == hz is 90
             self.model(x)
             loss = self.model.loss(t)
             loss.backward()
@@ -256,7 +256,7 @@ class DiaboloSystem():
 
 if __name__ == '__main__':
     train_flag = False
-    action = 1   # 0:test   1:simulate   2:realtime feedback
+    action = 1   # 0:test  1:simulate  2:realtime feedback
     
     ds = DiaboloSystem()
 
