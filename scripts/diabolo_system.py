@@ -2,13 +2,16 @@
 # -*- coding: utf-8 -*-
 
 # TODO
-
 # kerasの例はランダムにプロットしているので近く見える
 #   でも近い値は結構あるので確認のため隣合わせの例でプロットさせる
 #      ぎりぎり許せるくらい...
 # chainerは数値微分？reluはどうやって登録？
 
 # increase log_files
+
+# CHECK
+# self.state_ref is [0, 0]
+#
 
 import random, time
 import numpy as np
@@ -72,6 +75,7 @@ class DiaboloSystem():
         self.VAR_NUM = max(self.INPUT_NN_DIM, self.OUTPUT_NN_DIM)
 
         self.state_ref = [0., 0.]   # FIX
+        #self.state_ref = [10., 0.]   # FIX        
 
         self.train_test_ratio = 0.8   # FIX
         self.batch_size = 1000   # FIX
@@ -164,7 +168,6 @@ class DiaboloSystem():
             losses.append(loss.data)
             
         print(losses[-1])
-
         if plot_loss == True:
             plt.plot(losses)
             plt.yscale('log')
@@ -173,8 +176,8 @@ class DiaboloSystem():
     def save_model(self):
         serializers.save_hdf5('../log/diabolo_system/mymodel.h5', self.model)
 
-    def load_model(self):
-        serializers.load_hdf5('../log/diabolo_system/mymodel.h5', self.model)
+    def load_model(self, log_file='../log/diabolo_system/mymodel.h5'):
+        serializers.load_hdf5(log_file, self.model)
         
     def test(self):
         x, y = self.get_test()        
@@ -208,6 +211,7 @@ class DiaboloSystem():
             msg.data[1] = self.past_states[-1][1]            
         self.past_states.append([msg.data[0], msg.data[1]])
 
+    # CHECK
     def optimize_input(self): # TODO add max input restriction
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
@@ -240,7 +244,7 @@ class DiaboloSystem():
     def simulate(self):
         simulate_loop_num = 1000
         with open('../log/diabolo_system/simulate.log', 'w') as f:
-            for i in range(simulate_loop_num): # simulation loop
+            for i in range(simulate_loop_num):   # simulation loop
                 self.percentage(i, simulate_loop_num)
                 self.optimize_input()
                 now_x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1, 6))
@@ -271,7 +275,7 @@ if __name__ == '__main__':
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()    
-        ds.load_model()
+        ds.load_model(log_file='../log/diabolo_system/goodmodel1.h5')
     
     if action == 0:   # test
         ds.test()

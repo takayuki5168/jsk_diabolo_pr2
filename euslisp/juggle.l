@@ -66,7 +66,7 @@
 				    ))
 		  :groupname "diabolo-system")
 
-  ;; publish whether idle or not
+ ;; publish whether idle or not
   (ros::advertise "idle" std_msgs::float64 1)
 
   ;; publish larm
