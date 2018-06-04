@@ -16,7 +16,6 @@
 
 # TODOTODOTODO
 # armの符号が逆、だけどなぜかpitchは収束する...
-# pitchの取得がとても遅れる
 
 import random, time
 import numpy as np
