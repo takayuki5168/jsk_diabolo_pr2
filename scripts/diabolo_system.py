@@ -9,6 +9,7 @@
 # chainerは数値微分？reluはどうやって登録？
 
 # increase log_files
+# time to forward
 
 import random
 import numpy as np
@@ -60,10 +61,9 @@ class DiaboloSystem():
         self.PAST_STATE_NUM = 2   # FIX
         self.PAST_INPUT_NUM = 1   # FIX
         self.PAST_NUM = max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM)
-        
         self.STATE_DIM = 2
         self.INPUT_DIM = 2
-
+        
         self.DELTA_STEP = 5   # FIX
 
         self.INPUT_NN_DIM = self.STATE_DIM * self.PAST_STATE_NUM + self.INPUT_DIM * self.PAST_INPUT_NUM
@@ -71,18 +71,18 @@ class DiaboloSystem():
         
         self.VAR_NUM = max(self.INPUT_NN_DIM, self.OUTPUT_NN_DIM)
 
-        self.state_ref = [-3., 0.]   # FIX
+        self.state_ref = [0., 0.]   # FIX
 
         self.train_test_ratio = 0.8   # FIX
         self.batch_size = 1000   # FIX
 
-        self.init_state = [0, 0]
+        self.init_state = [10, 10]
         self.past_states = [self.init_state for i in range(10)]
-        self.now_input = [0.75, 0]
+        self.now_input = [0.7, 0]
         
         self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.001]
-        self.MAX_INPUT_RESTRICTION = [0.03, 0.001]   # TODO
-        self.MIN_INPUT_RESTRICTION = [0.03, 0.001]   # TODO        
+        self.MAX_INPUT_RESTRICTION = [0.85, 0.34]   # TODO
+        self.MIN_INPUT_RESTRICTION = [0.60, -0.34]   # TODO        
         
         rospy.init_node("DiaboloSystem")
         rospy.Subscriber("calc_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state)
@@ -211,10 +211,17 @@ class DiaboloSystem():
             x = Variable((x - 0.01 * x.grad_var).data)
             now_input = [x[0][4].data, x[0][5].data]
             for j in range(self.PAST_INPUT_NUM * self.INPUT_DIM):
+                # diff restriction
                 if now_input[j] - self.now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
                     now_input[j] = np.float32(self.now_input[j] + self.MAX_INPUT_DIFF_RESTRICTION[j])
                 elif self.now_input[j] - now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
                     now_input[j] = np.float32(self.now_input[j] - self.MAX_INPUT_DIFF_RESTRICTION[j])
+                # max min restriction
+                if now_input[j] > self.MAX_INPUT_RESTRICTION[j]:
+                    now_input[j] = self.MAX_INPUT_RESTRICTION[j]
+                elif now_input[j] < self.MIN_INPUT_RESTRICTION[j]:
+                    now_input[j] = self.MIN_INPUT_RESTRICTION[j]
+                    
             x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
 
         self.now_input = [float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 0].data), float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 1].data)]
@@ -254,9 +261,9 @@ if __name__ == '__main__':
      
     if action == 0:   # test
         ds.test()
-    elif action == 1   # simulate
+    elif action == 1:   # simulate
         ds.simulate()
-    elif action == 2   # realtime feedback
+    elif action == 2:   # realtime feedback
         ds.realtime_feedback
 
 
