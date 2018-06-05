@@ -14,7 +14,7 @@ public:
 			       pitch_(0), yaw_(0),  			       
 			       min_cube_x_(0.3), max_cube_x_(1.0),
 			       min_cube_y_(-0.2), max_cube_y_(0.2),
-			       min_cube_z_(0.1), max_cube_z_(0.6)
+			       min_cube_z_(0.1), max_cube_z_(0.7)
 
   {
     // Subscriber

@@ -61,12 +61,13 @@ LOG_FILES = ['../log/log-by-logger/log-by-loggerpy1_0.log',
 class MyChain(Chain):
     def __init__(self):
         super(MyChain, self).__init__(   # FIX
-            l1=L.Linear(6, 2),
+            l1=L.Linear(6, 1),
             l2=L.Linear(2)
             )
         
     def forward(self, x):   # FIX
-        h = F.sigmoid(self.l1(x))
+        #h = F.sigmoid(self.l1(x))
+        h = self.l1(x)
         o = self.l2(h)
         return o
 
@@ -266,9 +267,10 @@ class DiaboloSystem():
         with open('../log/diabolo_system/predict.log', 'w') as f:
             for i in range(len(x_)):
                 f.write('{} {} {} {} {} {}\n'.format(x_[i][4].data, x_[i][5].data, t_[i][0].data, t_[i][1].data, self.model.res[i][0].data, self.model.res[i][1].data))
-        print(loss.data)
+        print('[Test] loss is {}'.format(loss.data))
 
     def realtime_feedback(self):
+        print('[RealtimeFeedback] reference of diabolo state is {}'.format(self.state_ref))
         rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
         rospy.spin()        
         # callback_for_state is working background
@@ -327,11 +329,10 @@ class DiaboloSystem():
         self.now_input = [float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 0].data), float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 1].data)]
 
     def simulate(self, simulate_loop_num=1000):
-        #self.init_state = [40., 0.]
+        #self.init_state = [0., 0.]
         self.init_state = [40., 0.]        
         
         self.past_states = [self.init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]
-        print('[DebugPrint] Simulation Start')        
         with open('../log/diabolo_system/simulate.log', 'w') as f:
             for i in range(simulate_loop_num):   # simulation loop
                 self.percentage(i, simulate_loop_num)
@@ -351,7 +352,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", "-t", help="train NN or not")
     parser.add_argument("--action", "-a", help="what action do you want")
-    parser.add_argument("--plot", "-p", help="plot loss graph or not")        
+    parser.add_argument("--plot", "-p", help="plot loss graph or not")
+    parser.add_argument("--model", "-m", help="which model do you use")            
     args = parser.parse_args()
 
     # parse train
@@ -362,7 +364,7 @@ if __name__ == '__main__':
 
     # parse action
     if args.action == None:
-        action = 2    # 0:test  1:simulate  2:realtime feedback
+        action = 1    # 0:simulate  1:realtime feedback
     else:
         action = int(args.action)
 
@@ -372,8 +374,15 @@ if __name__ == '__main__':
     else:
         plot_loss_ = args.plot
         
-    ds = DiaboloSystem()
+    # which model
+    if args.model == None:
+        model_file = '../log/diabolo_system/mymodel.h5'
+    else:
+        model_file = args.model
+    print('load model from {}'.format(model_file))
 
+    ds = DiaboloSystem()
+    
     # train model or load model
     if train_flag:
         ds.load_data(LOG_FILES)
@@ -385,11 +394,15 @@ if __name__ == '__main__':
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()    
-        ds.load_model(log_file='../log/diabolo_system/mymodel.h5')
+        ds.load_model(log_file=model_file)
 
-    if action == 0: # test
-        ds.test()
-    elif action == 1: # simulate
+    # test
+    ds.test()
+
+    if action == 0: # simulate
+        print('[Simulate] start')
         ds.simulate(simulate_loop_num=300)
-    elif action == 2: # realtime feedback
+        print('[Simulate] end')        
+    elif action == 1: # realtime feedback
+        print('[RealtimeFeedback] start')        
         ds.realtime_feedback()

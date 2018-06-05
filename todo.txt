@@ -1,28 +1,41 @@
+# TODO
+calc pitch more acculately
+  not use one point, use some points when calculating pitch. at least 3 points each
+  
 simulate by forwaring of NeurlNetwork
   make diabolo of eus model
   translate to COLLADA
   diaplay in RViz
+  move robot with euslisp
 
+consider model
+  x(t) = f(x(t-1), x(t-2), u(t-1)
+  dx(t)/dt = f(x(t-1), x(t-2), u(t-1)  <- this is better?
+  the way not to overfit
+    -> decrease neuron of middle layer
+
+consider optimization of controller
+  modify loss func
+    x loss(pitch_diff, yaw_diff) = pitch_diff + yaw_diff
+    o loss(pitch_diff, yaw_diff) = w1 * pitch_diff + w2 * yaw_diff
+
+training online
+
+add physical parameters
+  train
+  estimation
+
+# DONE
 apply LPF
   record stable diabolo pitch and yaw
   calc frequency
   (calc covariance)
-  calc w0 of LPF
+  calc w0 or average_num of LPF
   apply LPF to log data
   plot and see whether LPF work well
-
-make model
-  x(t) = f(x(t-1), x(t-2), u(t-1)
-  dx(t)/dt = f(x(t-1), x(t-2), u(t-1)  <- this is better?
-  the way not to overfit
 
 fit
   see accuracy
   
 predict
   see accuracy
-
-consider optimization of controller
-  modify loss func
-    x loss(pitch_diff, yaw_diff) = pitch_diff + yaw_diff
-    o loss(pitch_diff, yaw_diff) = w1 * pitch_diff + w2 * yaw_diff

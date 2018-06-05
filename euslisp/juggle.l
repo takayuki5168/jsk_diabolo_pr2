@@ -8,9 +8,16 @@
 ;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
 ;;   rosrun pr2_juggle calc_toss_diabolo_pos   ;;ディアボロの座標を計算
 
-;; python state-input-logger.py   ;;システム同定のためのロガー
+;; python diabolo_system.py -m ../log/diabolo_system/goodmodel_612_0.h5  ;; train, test, simulate, calc next optimized input by using self-calculated model
 
-;; rosbag record -O diabolo0.bag  /diabolo_marker/diabolo_marker /diabolo_marker/diabolo_cube_marker /calc_idle_diabolo_state/points /calc_idle_diabolo_state/pitch_points /tf   ;;rosbag を取る
+
+;; python state-input-logger.py   ;; logger of state(pitch, yaw) and input(arm, base)
+
+;; rosbag record -O diabolo0.bag  /calc_idle_diabolo_state/diabolo_points /calc_idle_diabolo_state/diabolo_state /calc_idle_diabolo_state/pitch_points /calc_idle_diabolo_state/marker_cube /calc_idle_diabolo_state/marker_mid /calc_idle_diabolo_state/marker_state /tf   ;; log rosbag
+;;   ;; update robot model
+
+;; rosrun jsk_diaoblo_pr2 publish_diabolo_model   ;; publish diabolo .dae model
+
 
 ;;  TODO
 ;;    :angle-vectorが遅い

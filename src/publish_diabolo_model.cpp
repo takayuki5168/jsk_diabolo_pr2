@@ -1,11 +1,12 @@
 #include <ros/ros.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <visualization_msgs/Marker.h>
+#include "tf/transform_broadcaster.h"
 
 class PublishDiaboloModelNode
 {
 public:
-  PublishDiaboloModelNode() : nh_(""), pnh_("~"), r_(30)
+  PublishDiaboloModelNode() : nh_(""), pnh_("~"), r_(30), pitch_(0), yaw_(0)
   {
     // Subscriber
     sub_diabolo_state_ = pnh_.subscribe("/calc_idle_diabolo_state/diabolo_state", 1, &PublishDiaboloModelNode::messageCallback, this);
@@ -28,7 +29,7 @@ public:
 private:
   void initMarker() {
     /*
-     * marker state
+     * marker diabolo model
      */
     marker_diabolo_model_.header.frame_id = "/base_footprint";
     marker_diabolo_model_.header.stamp = ros::Time::now();
@@ -36,9 +37,7 @@ private:
     marker_diabolo_model_.id = 0;
     marker_diabolo_model_.type = visualization_msgs::Marker::MESH_RESOURCE;    
     marker_diabolo_model_.action = visualization_msgs::Marker::ADD;
-    marker_diabolo_model_.mesh_resource = "package://jsk_diabolo_pr2/meshes/diabolo.dae";    
-    //marker_diabolo_model_.mesh_resource = "~/ros/kinetic/src/jsk_diabolo_pr2/meshes/diabolo.dae";
-    //marker_diabolo_model_.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
+    marker_diabolo_model_.mesh_resource = "package://jsk_diabolo_pr2/meshes/nil_link_mesh.dae";    
     marker_diabolo_model_.scale.x = 1;
     marker_diabolo_model_.scale.y = 1;
     marker_diabolo_model_.scale.z = 1;
@@ -53,6 +52,12 @@ private:
   {
     marker_diabolo_model_.header.frame_id = "/base_footprint";
     marker_diabolo_model_.header.stamp = ros::Time::now();
+    marker_diabolo_model_.pose.position.x = 0.7;
+    marker_diabolo_model_.pose.position.y = 0;
+    marker_diabolo_model_.pose.position.z = 0.21;
+    tf::Quaternion q_diabolo = tf::createQuaternionFromRPY(0, -pitch_ * 3.14 / 180 + 1.57, yaw_ * 3.14 / 180);
+    quaternionTFToMsg(q_diabolo, marker_diabolo_model_.pose.orientation);
+    
     pub_marker_diabolo_model_.publish(marker_diabolo_model_);
   }
   
