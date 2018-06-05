@@ -1,4 +1,6 @@
 # TODO
+# subscribe input in diabolo_system realtime feedback with simulation
+
 # make tf of map base_footprint in juggle.l
 
 #refactor

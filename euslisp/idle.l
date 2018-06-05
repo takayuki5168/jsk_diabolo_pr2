@@ -1,3 +1,9 @@
+;; idle_diabolo.launch   ;; launch files for idle
+;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
+;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
+;;   rosrun pr2_juggle calc_idle_diabolo_state   ;;ディアボロの傾きを計算
+;; rosrun rviz rviz -d ~/.rviz/idle.rviz
+
 (defun idle-control (right-x-diff no-z) ;; |right-x-diff| < *max-x-dif*(= 220)
   ;; set z
   (setq *just-now-time* (/ (send (ros::time-now) :to-nsec) 1000000))

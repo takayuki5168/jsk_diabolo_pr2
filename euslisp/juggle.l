@@ -1,26 +1,16 @@
-;; idle_diabolo.launch   ;; launch files for idle
-;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
-;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;   rosrun pr2_juggle calc_idle_diabolo_state   ;;ディアボロの傾きを計算
-;; rosrun rviz rviz -d ~/.rviz/idle.rviz
+;; idle_diabolo.laucnh
 
-;; toss_diabolo.launch   ;; launch files for toss
-;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
-;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;   rosrun pr2_juggle calc_toss_diabolo_pos   ;;ディアボロの座標を計算
-;; rosrun rviz rviz -d ~/.rviz/toss.rviz
+;; toss_diabolo.launch
 
 ;; utils
 ;;   python diabolo_system.py -m ../log/diabolo_system/goodmodel_612_0.h5  ;; train, test, simulate, calc next optimized input by using self-calculated model
 ;;   python state-input-logger.py   ;; logger of state(pitch, yaw) and input(arm, base)
-
 
 ;; when record rosbag
 ;;   rosbag record -O diabolo.bag  /calc_idle_diabolo_state/diabolo_points /calc_idle_diabolo_state/diabolo_state /calc_idle_diabolo_state/pitch_points /calc_idle_diabolo_state/marker_cube /calc_idle_diabolo_state/marker_mid /calc_idle_diabolo_state/marker_state /tf
 ;; when play rosbag
 ;;   rosbag play diabolo.bag
 ;;   roslaunch pr2_description upload_pr2.launch  ;; upload robot model after play rosbag
-
 
 ;; simulate idle using diabolo system
 ;;   idle_diabolo_simulate.launch

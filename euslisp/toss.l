@@ -1,3 +1,9 @@
+;; toss_diabolo.launch   ;; launch files for toss
+;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
+;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
+;;   rosrun pr2_juggle calc_toss_diabolo_pos   ;;ディアボロの座標を計算
+;; rosrun rviz rviz -d ~/.rviz/toss.rviz
+
 (defun toss-control (y-diff) ;; |right-x-diff| < *max-x-dif*(= 220)
   (setq *toss-save-right-diff-cube* (send (send *toss-save-right-cube* :copy-coords) :translate (float-vector 0 (- y-diff) 0)))
   (setq *toss-save-left-diff-cube* (send (send *toss-save-left-cube* :copy-coords) :translate (float-vector 0 y-diff 0)))
