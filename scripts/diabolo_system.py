@@ -31,6 +31,7 @@
 
 import random, time, sys
 import numpy as np
+import argparse
 
 import chainer
 from chainer import Variable, Link, Chain, ChainList, optimizers, serializers
@@ -346,12 +347,31 @@ class DiaboloSystem():
                 self.past_states.append(now_state)
 
 if __name__ == '__main__':
-    train_flag = False
-    if len(sys.argv) == 2:
-        action = int(sys.argv[1])
+    # init arg parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train", "-t", help="train NN or not")
+    parser.add_argument("--action", "-a", help="what action do you want")
+    parser.add_argument("--plot", "-p", help="plot loss graph or not")        
+    args = parser.parse_args()
+
+    # parse train
+    if args.train == None:
+        train_flag = 0
     else:
-        action = 2  # 0:test  1:simulate  2:realtime feedback
-    
+        train_flag = args.train
+
+    # parse action
+    if args.action == None:
+        action = 2    # 0:test  1:simulate  2:realtime feedback
+    else:
+        action = int(args.action)
+
+    # parse plot
+    if args.plot == None:
+        plot_loss_ = 1
+    else:
+        plot_loss_ = args.plot
+        
     ds = DiaboloSystem()
 
     # train model or load model
@@ -359,17 +379,17 @@ if __name__ == '__main__':
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()
-        ds.train(loop_num=1000, plot_loss=True)
+        ds.train(loop_num=1000, plot_loss=plot_loss_)
         ds.save_model()
     else:
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()    
         ds.load_model(log_file='../log/diabolo_system/mymodel.h5')
-    
-    if action == 0:   # test
+
+    if action == 0: # test
         ds.test()
-    elif action == 1:   # simulate
+    elif action == 1: # simulate
         ds.simulate(simulate_loop_num=300)
-    elif action == 2:   # realtime feedback
+    elif action == 2: # realtime feedback
         ds.realtime_feedback()

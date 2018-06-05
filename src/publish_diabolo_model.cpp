@@ -34,8 +34,11 @@ private:
     marker_diabolo_model_.header.stamp = ros::Time::now();
     marker_diabolo_model_.ns = "diabolo_model_marker";
     marker_diabolo_model_.id = 0;
-    marker_diabolo_model_.mesh_resource = "package://jsk_diabolo_pr2/meshes/diabolo.dae";
+    marker_diabolo_model_.type = visualization_msgs::Marker::MESH_RESOURCE;    
     marker_diabolo_model_.action = visualization_msgs::Marker::ADD;
+    marker_diabolo_model_.mesh_resource = "package://jsk_diabolo_pr2/meshes/diabolo.dae";    
+    //marker_diabolo_model_.mesh_resource = "~/ros/kinetic/src/jsk_diabolo_pr2/meshes/diabolo.dae";
+    //marker_diabolo_model_.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
     marker_diabolo_model_.scale.x = 1;
     marker_diabolo_model_.scale.y = 1;
     marker_diabolo_model_.scale.z = 1;
@@ -48,6 +51,8 @@ private:
 
   void publishMarker()
   {
+    marker_diabolo_model_.header.frame_id = "/base_footprint";
+    marker_diabolo_model_.header.stamp = ros::Time::now();
     pub_marker_diabolo_model_.publish(marker_diabolo_model_);
   }
   
