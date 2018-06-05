@@ -1,4 +1,8 @@
 # TODO
+# make tf of map base_footprint in juggle.l
+
+#refactor
+
 # whether everything work well after refactoring
 
 # simulate in rviz(latch?)

@@ -10,9 +10,9 @@
 ;;   rosrun pr2_juggle calc_toss_diabolo_pos   ;;ディアボロの座標を計算
 ;; rosrun rviz rviz -d ~/.rviz/toss.rviz
 
-;; python diabolo_system.py -m ../log/diabolo_system/goodmodel_612_0.h5  ;; train, test, simulate, calc next optimized input by using self-calculated model
-
-;; python state-input-logger.py   ;; logger of state(pitch, yaw) and input(arm, base)
+;; utils
+;;   python diabolo_system.py -m ../log/diabolo_system/goodmodel_612_0.h5  ;; train, test, simulate, calc next optimized input by using self-calculated model
+;;   python state-input-logger.py   ;; logger of state(pitch, yaw) and input(arm, base)
 
 
 ;; when record rosbag
