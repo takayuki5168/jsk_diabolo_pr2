@@ -1,22 +1,37 @@
-;; idle_diabolo.launch   ;;idle用launchファイル群
+;; idle_diabolo.launch   ;; launch files for idle
 ;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
 ;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
 ;;   rosrun pr2_juggle calc_idle_diabolo_state   ;;ディアボロの傾きを計算
+;; rosrun rviz rviz -d ~/.rviz/idle.rviz
 
-;; toss_diabolo.launch   ;;toss用launchファイル群
+;; toss_diabolo.launch   ;; launch files for toss
 ;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
 ;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
 ;;   rosrun pr2_juggle calc_toss_diabolo_pos   ;;ディアボロの座標を計算
+;; rosrun rviz rviz -d ~/.rviz/toss.rviz
 
 ;; python diabolo_system.py -m ../log/diabolo_system/goodmodel_612_0.h5  ;; train, test, simulate, calc next optimized input by using self-calculated model
 
-
 ;; python state-input-logger.py   ;; logger of state(pitch, yaw) and input(arm, base)
 
-;; rosbag record -O diabolo0.bag  /calc_idle_diabolo_state/diabolo_points /calc_idle_diabolo_state/diabolo_state /calc_idle_diabolo_state/pitch_points /calc_idle_diabolo_state/marker_cube /calc_idle_diabolo_state/marker_mid /calc_idle_diabolo_state/marker_state /tf   ;; log rosbag
-;;   ;; update robot model
 
-;; rosrun jsk_diaoblo_pr2 publish_diabolo_model   ;; publish diabolo .dae model
+;; when record rosbag
+;;   rosbag record -O diabolo.bag  /calc_idle_diabolo_state/diabolo_points /calc_idle_diabolo_state/diabolo_state /calc_idle_diabolo_state/pitch_points /calc_idle_diabolo_state/marker_cube /calc_idle_diabolo_state/marker_mid /calc_idle_diabolo_state/marker_state /tf
+;; when play rosbag
+;;   rosbag play diabolo.bag
+;;   roslaunch pr2_description upload_pr2.launch  ;; upload robot model after play rosbag
+
+
+;; simulate idle using diabolo system
+;;   idle_diabolo_simulate.launch
+;;     roslaunch pr2_description upload_pr2.launch
+;;     roseus juggle.l
+;;       idle nil t t :simulate t :diabolo-system t ;; subscribe diabolo-system-input and send *ri*
+;;       (idle nil t t :simulate t ;; subscribe state and calc input and send *ri*)
+;;     rosrun jsk_diaoblo_pr2 publish_diabolo_model   ;; publish diabolo dae model
+;;     roslaunch jsk_diabolo_pr2 robot_state_publisher   ;; translate joint_states to tf for RViz
+;;     rosrun rviz rviz -d ~/.rviz/idle_simulate.rviz
+;;   python diabolo_system.py -m ../log/diabolo_system/goodmodel_612_0.h5 -a 1 ;; simulate(calc and publish next state) and optimize_input(calc and publish next input) 
 
 
 ;;  TODO
@@ -37,11 +52,7 @@
   (setq *diabolo-system-input-base* 0)
   
   (ros::load-ros-manifest "roseus")
-
-  ;;
-  ;; Subscriber
-  ;;
-  (ros::roseus "listener")
+  (ros::roseus "juggle-system")
 
   ;; subscribe idle diabolo state
   (ros::create-nodehandle "idle")  
@@ -72,6 +83,13 @@
 				    (setq *diabolo-system-input-base* (elt (send msg :data) 1))				    
 				    ))
 		  :groupname "diabolo-system")
+  (ros::create-nodehandle "diabolo-system-simulate")    
+  (ros::subscribe "diabolo_system/diabolo_state" std_msgs::Float64MultiArray
+  		  #'(lambda (msg) (progn
+				    (setq *idle-diabolo-pitch* (elt (send msg :data) 0))
+				    (setq *idle-diabolo-yaw* (elt (send msg :data) 1))				    
+				    ))
+		  :groupname "diabolo-system-simulate")
 
  ;; publish whether idle or not
   (ros::advertise "idle" std_msgs::float64 1)
@@ -91,6 +109,9 @@
   (solve-ik)
   
   (objects (list *pr2*))
+
+  (load "package://jsk_diabolo_pr2/euslisp/idle.l")
+  (load "package://jsk_diabolo_pr2/euslisp/toss.l")  
   )
 
 (defun solve-ik ()
@@ -195,299 +216,3 @@
       )
     )
   )
-
-;;
-;; toss
-;;
-(defun toss-control (y-diff) ;; |right-x-diff| < *max-x-dif*(= 220)
-  (setq *toss-save-right-diff-cube* (send (send *toss-save-right-cube* :copy-coords) :translate (float-vector 0 (- y-diff) 0)))
-  (setq *toss-save-left-diff-cube* (send (send *toss-save-left-cube* :copy-coords) :translate (float-vector 0 y-diff 0)))
-
-  (send *pr2* :rarm :inverse-kinematics *toss-save-right-diff-cube* :stop 3 :revert-if-fail nil)
-  (send *pr2* :larm :inverse-kinematics *toss-save-left-diff-cube* :stop 3 :revert-if-fail nil)
-  )
-
-(defun toss-only ()
-  ;;(send *ri* :angle-vector *toss-start-pos* 3000)
-  ;;(send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.2)    
-  (send *ri* :wait-interpolation-smooth 250)  
-  (send *ri* :angle-vector *toss-save-pos* 800)
-  ;;(send *ri* :wait-interpolation)
-  ;;(send *ri* :angle-vector *toss-start-pos* 3000)  
-  )
-
-(defun toss ()
-  ;;(send *ri* :angle-vector *toss-start-pos* 3000)
-  ;;(send *ri* :wait-interpolation)
-  ;;(send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.1)  
-  ;;(send *ri* :wait-interpolation-smooth 500)  
-  ;;(send *ri* :angle-vector *toss-save-pos* 800)
-
-  (setq *toss-max-y-diff* 100)
-  (setq *toss-min-y-diff* -300)  
-
-  (setq *now-time* 0)
-  (setq *toss-cnt* 0)
-  (do-until-key
-   (setq *toss-cnt* (+ *toss-cnt* 1))
-   (setq *past-time* *now-time*)
-   (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-   (print (list "one loop time" (- *now-time* *past-time*)))
-   
-   ;; subscribe
-   (ros::spin-once "toss")
-
-   ;; control
-   (setq *toss-control-y-diff* (- (* *toss-diabolo-x* 1000) 580))
-
-   ;; max min of control diff
-   (if (> *toss-control-y-diff* *toss-max-y-diff*)
-       (setq *toss-control-y-diff* *toss-max-y-diff*))
-   (if (< *toss-control-y-diff* *toss-min-y-diff*)
-       (setq *toss-control-y-diff* *toss-min-y-diff*))
-
-   ;; :angle-vector
-   (setq *toss-ec* (toss-control *toss-control-y-diff*))
-   (send *pr2* :angle-vector *toss-ec*)
-   ;;(toss-control *toss-control-y-diff*)
-   ;;(print (list *toss-diabolo-x* *toss-control-y-diff*))
-   ;;(print *toss-ec*)   
-   ;;(print (send *pr2* :larm :angle-vector))
-   ;;(bench (send *ri* :angle-vector *toss-ec* 500 :default-controller 0 :min-time 0.3))
-   (if (eq (mod *toss-cnt* 5) 0)
-       (bench (progn (publish-left-angle-vector 700)  (publish-right-angle-vector 700)))
-     )
-   )
-  
-  (send *pr2* :angle-vector *toss-start-pos*)
-  (bench (progn (publish-left-angle-vector 3000)  (publish-right-angle-vector 3000)))
-  )
-
-;;
-;; idle
-;;
-(defun idle-control (right-x-diff) ;; |right-x-diff| < *max-x-dif*(= 220)
-  ;; set z
-  (setq *just-now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-  (if (> (- *just-now-time* *now-time*) 1300) ;;700) ;; 1300
-      (progn
-	(setq *now-time* *just-now-time*)
-	(setq *right-z-diff* (- *right-z-diff*))
-	)
-    )
-  
-  (setq *default-right-diff-cube* (send (send *default-right-cube* :copy-coords) :translate (float-vector right-x-diff 0 *right-z-diff*))) ;; TODO y-diff
-  (setq *default-left-diff-cube* (send (send *default-left-cube* :copy-coords) :translate (float-vector (- right-x-diff) 0 (- *right-z-diff*)))) ;; TODO y-diff
-
-  (send *default-right-diff-cube* :rotate 0.2 :x)
-  (send *default-left-diff-cube* :rotate -0.2 :x)  
-  
-  (send *pr2* :rarm :inverse-kinematics *default-right-diff-cube*)
-  (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
-  )
-
-(defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t) &key (teach nil) (diabolo-system nil))
-  (if (eq roll-valid t)
-      (progn
-	(send *ri* :angle-vector *roll-1-pos* 5000)
-	(send *ri* :wait-interpolation)
-	(send *ri* :angle-vector *roll-2-pos* 5000)
-	(send *ri* :wait-interpolation)
-	(send *ri* :angle-vector *roll-3-pos* 3000)
-	(send *ri* :wait-interpolation)
-        (unix::usleep 3000)
-	(send *ri* :angle-vector *roll-4-pos* 1200)
-	(send *ri* :wait-interpolation-smooth 800)
-	)
-    )
-  
-  (setq *idle-control-x-diff* 0)
-  (setq *max-x-diff* 100) ;; TODO  
-  (setq *min-x-diff* 0)
-  (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
-  (setq *right-z-diff* 150)
-  (send *ri* :angle-vector (idle-control 0) 1500) ;;800)
-  (send *pr2* :head-neck-p :joint-angle 50)  
-  
-  (do-until-key
-   ;; subscribe
-   (ros::spin-once "idle")
-   (if (eq diabolo-system t)
-       (ros::spin-once "diabolo-system")
-     )
-
-   (setq idle-msg (instance std_msgs::float64 :init))   
-   (send idle-msg :data 1)
-   (ros::publish "idle" idle-msg)
-   
-   (progn ;; pitch
-     ;; P制御
-     (if (eq teach t) ;; when teach
-	 (progn
-	   (setq *joy-arm-input* (elt *joy* 3))
-	   (setq *idle-control-x-diff* (* *joy-arm-input* 100))
-	   )
-       (progn
-	 (if (eq diabolo-system t) ;; when diabolo-system
-	     (progn
-	       (setq *idle-control-x-diff* (- (* *diabolo-system-input-arm* 1000) 700))
-	       (print (list "[DiaboloSystem] input arm" *diabolo-system-input-arm*))
-	       (print *idle-control-x-diff*)
-	       )
-	   (progn
-	     (setq *idle-control-x-diff* (* *idle-diabolo-pitch* 10)) ;; when controller TODO params
-	     )
-	   )
-	 )
-       )
-
-     ;; 最大最小制限
-     (if (> *idle-control-x-diff* *max-x-diff*)
-	 (setq *idle-control-x-diff* *max-x-diff*))
-     (if (< *idle-control-x-diff* (- *max-x-diff*))
-	 (setq *idle-control-x-diff* (- *max-x-diff*)))
-
-     ;; 不感帯
-     (if (< *idle-control-x-diff* *min-x-diff*)
-	 (if (> *idle-control-x-diff* (- *min-x-diff*))
-	     (setq *idle-control-x-diff* 0)))
-
-     ;; 実機での動作
-     (if (eq pitch-valid nil)
-	 (setq *idle-control-x-diff* 0)
-       )
-     (setq *idle-ec* (idle-control *idle-control-x-diff*))     
-     (bench (send *ri* :angle-vector *idle-ec* 1500)) ;;800)
-     )
-
-   (progn ;; yaw
-     (if (eq teach t) ;; when teach
-	 (progn
-	   (setq *joy-base-input* (elt *joy* 0))
-	   (setq *idle-diabolo-yaw* (* *joy-base-input* 30))
-	   )
-       (progn
-	 (if (eq diabolo-system t) ;; when diabolo system
-	     (progn
-	       (setq *idle-diabolo-yaw* (* (/ (* *diabolo-system-input-base* 180) 3.14) 1)) ;;TODOTODO   magic number 100
-	       )
-	   )
-	 )
-       )    
-     ;; 外れ値除去
-     (if (> *idle-diabolo-yaw* 60)
-	 (setq *idle-diabolo-yaw* 0))
-     (if (< *idle-diabolo-yaw* -60)
-	 (setq *idle-diabolo-yaw* 0))
-     
-     ;; 最大角度制限
-     (if (> *idle-diabolo-yaw* 20) ;;20)
-	 (setq *idle-diabolo-yaw* 20)) ;;20))
-     (if (< *idle-diabolo-yaw* -20) ;;-20)
-	 (setq *idle-diabolo-yaw* -20)) ;;-20))
-     
-     (setq *radius* 0.7) ;;(/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m] ;; TODO
-     (setq *radius* (* *radius* 0.8)) ;; TODO
-     (setq *idle-diabolo-yaw-rad* (/ (* *idle-diabolo-yaw* 3.14) 180))
-     
-     (setq *diff-x* (* *radius* (- 1 (cos *idle-diabolo-yaw-rad*))))
-     (setq *diff-y* (* *radius* (sin (- *idle-diabolo-yaw-rad*))))
-     ;;(setq *diff-x* 0)
-     ;;(setq *diff-y* 0)
-
-     ;; 実機での動作
-     (if (eq yaw-valid t)
-	 (progn
-	   (progn
-	     ;;(setq *diff-theta* *diabolo-yaw*)
-	     ;;(send *ri* :go-pos-unsafe *diff-x* *diff-y* *diff-theta*)
-	     )
-	   (progn
-	     (setq *diff-theta* *idle-diabolo-yaw-rad*)
-	     (setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 1000)) ;;10000))
-	     (send *ac* :send-goal *goal*)
-	     )
-	   )
-       )
-     )
-   )
-  
-  (send *pr2* :rarm :inverse-kinematics *default-right-cube*)  
-  (send *pr2* :larm :inverse-kinematics *default-left-cube*)   
-  (setq *default-pos* (send *pr2* :angle-vector))
-  (send *ri* :angle-vector *default-pos* 5000)
-
-  (if (eq yaw-valid t)
-      (progn
-      (setq *goal* (send *ri* :move-trajectory 0 0 0 10000))
-      (send *ac* :send-goal *goal*)
-      )
-    )
-  )
-
-;;(defun publish-left-angle-vector (time)   ;; after solving ik
-;;  (setq *idle-angle-vector-joint-names* (mapcar #'(lambda (val) (send (send val :joint) :name)) (send *pr2* :larm)))  
-;;  (setq *idle-angle-vector-positions* (map float-vector #'deg2rad (send *pr2* :larm :angle-vector)))
-;;  (setq *idle-angle-vector-time* time)
-;;
-;;  ;; init msg
-;;  (setq *idle-angle-vector-msg* (instance control_msgs::FollowJointTrajectoryActionGoal :init))
-;;
-;;  ;; assign data to msg
-;;  (setq *ros-time-sec* (send (send (ros::time) :now) :sec))
-;;  (setq *ros-time-nsec* (send (send (ros::time) :now) :nsec))  
-;;  (let ((i (instance trajectory_msgs::JointTrajectoryPoint :init)))
-;;    (send i :positions  *idle-angle-vector-positions*)
-;;    (send i :velocities  #f(0.0 0.0 0.0 0.0 0.0 0.0 0.0))
-;;    (send (send i :time_from_start) :sec (/ *idle-angle-vector-time* 1000))
-;;    (send (send i :time_from_start) :nsec (- *idle-angle-vector-time* (* (/ *idle-angle-vector-time* 1000) 1000)))
-;;    (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :sec *ros-time-sec*)
-;;    (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :nsec *ros-time-nsec*)
-;;    (send *idle-angle-vector-msg* :goal :trajectory :points (list i)) ;; TODO
-;;    )
-;;
-;;  (send *idle-angle-vector-msg* :header :seq 1)
-;;  (send (send (send *idle-angle-vector-msg* :header) :stamp)
-;;	:sec *ros-time-sec*)
-;;  (send (send (send *idle-angle-vector-msg* :header) :stamp)
-;;	:nsec *ros-time-nsec*)
-;;
-;;  (send *idle-angle-vector-msg*
-;;	:goal :trajectory :joint_names *idle-angle-vector-joint-names*)
-;;
-;;  (ros::publish "/l_arm_controller/follow_joint_trajectory/goal" *idle-angle-vector-msg*)
-;;  )
-;;
-;;(defun publish-right-angle-vector (time)   ;; after solving ik
-;;  (setq *idle-angle-vector-joint-names* (mapcar #'(lambda (val) (send (send val :joint) :name)) (send *pr2* :rarm)))  
-;;  (setq *idle-angle-vector-positions* (map float-vector #'deg2rad (send *pr2* :rarm :angle-vector)))
-;;  (setq *idle-angle-vector-time* time)
-;;
-;;  ;; init msg
-;;  (setq *idle-angle-vector-msg* (instance control_msgs::FollowJointTrajectoryActionGoal :init))
-;;
-;;  ;; assign data to msg
-;;  (setq *ros-time-sec* (send (send (ros::time) :now) :sec))
-;;  (setq *ros-time-nsec* (send (send (ros::time) :now) :nsec))  
-;;  (let ((i (instance trajectory_msgs::JointTrajectoryPoint :init)))
-;;    (send i :positions  *idle-angle-vector-positions*)
-;;    (send i :velocities  #f(0.0 0.0 0.0 0.0 0.0 0.0 0.0))
-;;    (send (send i :time_from_start) :sec (/ *idle-angle-vector-time* 1000))
-;;    (send (send i :time_from_start) :nsec (- *idle-angle-vector-time* (* (/ *idle-angle-vector-time* 1000) 1000)))
-;;    (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :sec *ros-time-sec*)
-;;    (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :nsec *ros-time-nsec*)
-;;    (send *idle-angle-vector-msg* :goal :trajectory :points (list i)) ;; TODO
-;;    )
-;;
-;;  (send *idle-angle-vector-msg* :header :seq 1)
-;;  (send (send (send *idle-angle-vector-msg* :header) :stamp)
-;;	:sec *ros-time-sec*)
-;;  (send (send (send *idle-angle-vector-msg* :header) :stamp)
-;;	:nsec *ros-time-nsec*)
-;;
-;;  (send *idle-angle-vector-msg*
-;;	:goal :trajectory :joint_names *idle-angle-vector-joint-names*)
-;;
-;;  (ros::publish "/r_arm_controller/follow_joint_trajectory/goal" *idle-angle-vector-msg*)
-;;  )

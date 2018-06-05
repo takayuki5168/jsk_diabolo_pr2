@@ -1,6 +1,6 @@
 <launch>
   <include file="$(find jsk_diabolo_pr2)/launch/toss_diabolo.launch"/>
   
-  <node name="diabolo_euslisp_toss" pkg="roseus" type="roseus" args="$(find jsk_diabolo_pr2)/euslisp/toss.l">
+  <node name="diabolo_euslisp_toss" pkg="roseus" type="roseus" args="$(find jsk_diabolo_pr2)/euslisp/demo-toss.l">
   </node>
 </launch>

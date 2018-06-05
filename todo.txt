@@ -1,4 +1,8 @@
 # TODO
+# whether everything work well after refactoring
+
+# simulate in rviz(latch?)
+
 calc pitch more acculately
   not use one point, use some points when calculating pitch. at least 3 points each
   

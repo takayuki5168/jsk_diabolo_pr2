@@ -9,7 +9,8 @@ public:
   PublishDiaboloModelNode() : nh_(""), pnh_("~"), r_(30), pitch_(0), yaw_(0)
   {
     // Subscriber
-    sub_diabolo_state_ = pnh_.subscribe("/calc_idle_diabolo_state/diabolo_state", 1, &PublishDiaboloModelNode::messageCallback, this);
+    //sub_diabolo_state_ = pnh_.subscribe("/calc_idle_diabolo_state/diabolo_state", 1, &PublishDiaboloModelNode::messageCallback, this);
+    sub_diabolo_state_ = pnh_.subscribe("/diabolo_system/diabolo_state", 1, &PublishDiaboloModelNode::messageCallback, this);    
 
     // Publisher
     pub_marker_diabolo_model_ = pnh_.advertise<visualization_msgs::Marker>("diabolo_model", 1);
@@ -18,13 +19,7 @@ public:
     initMarker();
   }
 
-  void execute()
-  {
-    while (true) {
-      ros::spinOnce();
-      publishMarker();
-    }
-  }
+  void execute() { ros::spin(); }
   
 private:
   void initMarker() {
@@ -65,6 +60,8 @@ private:
   {
     pitch_ = diabolo_state.data[0];
     yaw_ = diabolo_state.data[1];
+    
+    publishMarker();
   }
 
   // ros params

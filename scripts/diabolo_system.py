@@ -1,35 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# TODO
-# kerasの例はランダムにプロットしているので近く見える
-#   でも近い値は結構あるので確認のため隣合わせの例でプロットさせる
-#      ぎりぎり許せるくらい...
-# chainerは数値微分？reluはどうやって登録？
-
-# increase log_files
-
 # CHECK
 # (self.init_state is [0, 0]   # only use for simulation)
 # self.state_ref is [0, 0]
 # action is 2
 # self.MAX_INPUT_DIFF_RESTRICTION
 
-# TODOTODOTODO
-# armの符号が逆、だけどなぜかpitchは収束する...
-#   NNの中間層の数を変えると治る
-# sometime, subscribe is very slow
+# TODO
+#   sometime, subscribe is very slow
+#   increase log_files
+#   also subscribe input(arm, base) when simulate (and optimize_input and)
 
-
-# consider frequency of noise
-#  apply lowpassfilter
-
-# consider covariance of observation
+# DONE
+#   consider frequency of noise, covariance
 
 # if not using zerograds, what happens
 
 
-import random, time, sys
+import random, time, sys, signal
 import numpy as np
 import argparse
 
@@ -119,7 +108,8 @@ class DiaboloSystem():
 
         # init ros variable
         rospy.init_node("DiaboloSystem")
-        self.pub_input = rospy.Publisher('/diabolo_system/diabolo_input', Float64MultiArray, queue_size=1)
+        self.pub_diabolo_input = rospy.Publisher('/diabolo_system/diabolo_input', Float64MultiArray, queue_size=1)
+        self.pub_diabolo_state = rospy.Publisher('/diabolo_system/diabolo_state', Float64MultiArray, queue_size=1)        
 
     # print percentage of progress every 10%
     def percentage(self, idx, loop_num):
@@ -173,31 +163,34 @@ class DiaboloSystem():
     def arrange_data(self):
         self.X = []
         self.Y = []
-        
-        for i in range((max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP, len(self.input_arm_lpf)):
-            x = []
-            y = [self.state_pitch_lpf[i], self.state_yaw_lpf[i]]            
-            for j in range(self.PAST_STATE_NUM):
-                x.append(self.state_pitch_lpf[i - (j + 1) * self.DELTA_STEP])
-                x.append(self.state_yaw_lpf[i - (j + 1) * self.DELTA_STEP])
-            for j in range(self.PAST_INPUT_NUM):
-                x.append(self.input_arm_lpf[i - (j + 1) * self.DELTA_STEP])
-                x.append(self.input_base_lpf[i - (j + 1) * self.DELTA_STEP])
-            self.X.append(x)
-            self.Y.append(y)
-        '''
-        for i in range((max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP, len(self.input_arm)):
-            x = []
-            y = [self.state_pitch[i], self.state_yaw[i]]            
-            for j in range(self.PAST_STATE_NUM):
-                x.append(self.state_pitch[i - (j + 1) * self.DELTA_STEP])
-                x.append(self.state_yaw[i - (j + 1) * self.DELTA_STEP])
-            for j in range(self.PAST_INPUT_NUM):
-                x.append(self.input_arm[i - (j + 1) * self.DELTA_STEP])
-                x.append(self.input_base[i - (j + 1) * self.DELTA_STEP])
-            self.X.append(x)
-            self.Y.append(y)
-        '''         
+
+        use_lpf = True
+        if use_lpf: # for LPF
+            for i in range((max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP, len(self.input_arm_lpf)):
+                x = []
+                y = [self.state_pitch_lpf[i], self.state_yaw_lpf[i]]            
+                for j in range(self.PAST_STATE_NUM):
+                    x.append(self.state_pitch_lpf[i - (j + 1) * self.DELTA_STEP])
+                    x.append(self.state_yaw_lpf[i - (j + 1) * self.DELTA_STEP])
+                for j in range(self.PAST_INPUT_NUM):
+                    x.append(self.input_arm_lpf[i - (j + 1) * self.DELTA_STEP])
+                    x.append(self.input_base_lpf[i - (j + 1) * self.DELTA_STEP])
+                self.X.append(x)
+                self.Y.append(y)
+                
+        else: # for not LPF
+            for i in range((max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP, len(self.input_arm)):
+                x = []
+                y = [self.state_pitch[i], self.state_yaw[i]]            
+                for j in range(self.PAST_STATE_NUM):
+                    x.append(self.state_pitch[i - (j + 1) * self.DELTA_STEP])
+                    x.append(self.state_yaw[i - (j + 1) * self.DELTA_STEP])
+                for j in range(self.PAST_INPUT_NUM):
+                    x.append(self.input_arm[i - (j + 1) * self.DELTA_STEP])
+                    x.append(self.input_base[i - (j + 1) * self.DELTA_STEP])
+                self.X.append(x)
+                self.Y.append(y)
+
     # make NeuralNetwork model by using MyChain class
     def make_model(self):
         self.model = MyChain()
@@ -229,7 +222,6 @@ class DiaboloSystem():
         serializers.save_hdf5('../log/diabolo_system/mymodel.h5', self.model)
         
     def train(self, loop_num=1000, plot_loss=True):
-        print('[DebugPrint] Training Start')        
         losses =[]
         for i in range(loop_num):
             self.percentage(i, loop_num)
@@ -247,7 +239,7 @@ class DiaboloSystem():
         
             losses.append(loss.data)
             
-        print(losses[-1])
+        print('[Train] loss is {}'.format(losses[-1]))
         if plot_loss == True:
             plt.plot(losses)
             plt.yscale('log')
@@ -269,14 +261,26 @@ class DiaboloSystem():
                 f.write('{} {} {} {} {} {}\n'.format(x_[i][4].data, x_[i][5].data, t_[i][0].data, t_[i][1].data, self.model.res[i][0].data, self.model.res[i][1].data))
         print('[Test] loss is {}'.format(loss.data))
 
-    def realtime_feedback(self):
+    def realtime_feedback(self, simulate=False):
         print('[RealtimeFeedback] reference of diabolo state is {}'.format(self.state_ref))
-        rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
-        rospy.spin()        
-        # callback_for_state is working background
-        #   optimize_input
-        #   publish_input
+        if simulate:
+            #init_state = [0., 0.]
+            init_state = [40., 0.]
 
+            self.past_states = [init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]            
+            while True:
+                self.simulate_once()
+                self.publish_input()
+                self.publish_state()
+                time.sleep(1. / 20) # wait 20Hz                
+                # not subscribe(TODO subscribe input when PAST_INPUT_NUM >= 2)
+        else:
+            rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
+            rospy.spin()
+            # callback_for_state is working background
+            #   optimize_input
+            #   publish_input
+            
     def callback_for_state(self, msg):
         if msg.data[0] == np.nan:
             msg.data[0] = self.past_states[-1][0]
@@ -291,7 +295,12 @@ class DiaboloSystem():
     def publish_input(self):
         msg = Float64MultiArray()
         msg.data = [self.now_input[0], self.now_input[1]]
-        self.pub_input.publish(msg)
+        self.pub_diabolo_input.publish(msg)
+
+    def publish_state(self):
+        msg = Float64MultiArray()
+        msg.data = [self.past_states[-1][0], self.past_states[-1][1]]
+        self.pub_diabolo_state.publish(msg)
 
     # CHECK
     def optimize_input(self): # TODO add max input restriction
@@ -328,59 +337,52 @@ class DiaboloSystem():
 
         self.now_input = [float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 0].data), float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 1].data)]
 
-    def simulate(self, simulate_loop_num=1000):
-        #self.init_state = [0., 0.]
-        self.init_state = [40., 0.]        
+    def simulate_once(self): # optimize input and simulate
+        self.optimize_input()
+        now_x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1, 6))
         
-        self.past_states = [self.init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]
+        self.model(now_x)
+        res = self.model.res
+        now_state = [res[0][0].data, res[0][1].data]
+        self.past_states.append(now_state)
+
+    def simulate_from_log(self, simulate_loop_num=1000):
+        #init_state = [0., 0.]
+        init_state = [40., 0.]        
+        
+        self.past_states = [init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]
         with open('../log/diabolo_system/simulate.log', 'w') as f:
             for i in range(simulate_loop_num):   # simulation loop
-                self.percentage(i, simulate_loop_num)
-                self.optimize_input()
-                now_x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1, 6))
-        
-                self.model(now_x)
-                res = self.model.res
-                now_state = [res[0][0].data, res[0][1].data]
-
+                self.percentage(i, simulate_loop_num)                
+                self.simulate_once()
                 #f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], now_state[0], now_state[1]))
-                f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))                
-                self.past_states.append(now_state)
+                f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))                                
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, lambda signal, frame: sys.exit(0))
+
     # init arg parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train", "-t", help="train NN or not")
-    parser.add_argument("--action", "-a", help="what action do you want")
-    parser.add_argument("--plot", "-p", help="plot loss graph or not")
-    parser.add_argument("--model", "-m", help="which model do you use")            
+    parser.add_argument("--train", "-t", nargs='?', default=0, const=1, help="train NN or not")
+    parser.add_argument("--action", "-a", default=2, help="what action do you want")
+    parser.add_argument("--plot", "-p", nargs='?', default=1, const=1, help="plot loss graph or not")
+    parser.add_argument("--model", "-m", default='../log/diabolo_system/mymodel.h5', help="which model do you use")            
     args = parser.parse_args()
 
     # parse train
-    if args.train == None:
-        train_flag = 0
-    else:
-        train_flag = args.train
+    train_flag = int(args.train)
 
     # parse action
-    if args.action == None:
-        action = 1    # 0:simulate  1:realtime feedback
-    else:
-        action = int(args.action)
+    action = int(args.action)   # 0:simulate  1:realtime feedback with simulate 2:realtime feedback with real robot
 
     # parse plot
-    if args.plot == None:
-        plot_loss_ = 1
-    else:
-        plot_loss_ = args.plot
+    plot_loss_ = args.plot
         
     # which model
-    if args.model == None:
-        model_file = '../log/diabolo_system/mymodel.h5'
-    else:
-        model_file = args.model
+    model_file = args.model
     print('load model from {}'.format(model_file))
 
+    
     ds = DiaboloSystem()
     
     # train model or load model
@@ -388,21 +390,26 @@ if __name__ == '__main__':
         ds.load_data(LOG_FILES)
         ds.arrange_data()
         ds.make_model()
+        print('[Train] start')        
         ds.train(loop_num=1000, plot_loss=plot_loss_)
         ds.save_model()
     else:
         ds.load_data(LOG_FILES)
         ds.arrange_data()
-        ds.make_model()    
+        ds.make_model()
+        print('[Train] pass')                
         ds.load_model(log_file=model_file)
 
     # test
     ds.test()
 
-    if action == 0: # simulate
+    # action
+    if action == 0:
         print('[Simulate] start')
-        ds.simulate(simulate_loop_num=300)
-        print('[Simulate] end')        
-    elif action == 1: # realtime feedback
-        print('[RealtimeFeedback] start')        
-        ds.realtime_feedback()
+        ds.simulate_from_log(simulate_loop_num=300)
+    elif action == 1:
+        print('[RealtimeFeedback] start with simulate')                
+        ds.realtime_feedback(simulate=True)
+    elif action == 2:
+        print('[RealtimeFeedback] start with real robot')                
+        ds.realtime_feedback(simulate=False)
