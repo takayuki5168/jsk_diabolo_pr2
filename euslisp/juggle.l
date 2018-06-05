@@ -69,7 +69,6 @@
   (ros::subscribe "diabolo_system/diabolo_input" std_msgs::Float64MultiArray
   		  #'(lambda (msg) (progn
 				    (setq *diabolo-system-input-arm* (elt (send msg :data) 0))
-				    (print (list "po" *diabolo-system-input-arm*))
 				    (setq *diabolo-system-input-base* (elt (send msg :data) 1))				    
 				    ))
 		  :groupname "diabolo-system")
