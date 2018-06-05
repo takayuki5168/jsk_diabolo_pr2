@@ -1,5 +1,5 @@
 (ros::roseus "make-diabolo-mesh")
-1;4205;0c
+
 (setq *diabolo-top*
       (make-solid-of-revolution
        (mapcar #'(lambda (x) (scale 1e1 x)) (list #f(0 0 1.5) #f(1 0 1.5) #f(3 0 2.5) #f(5 0 4.5) #f(6 0 7.5) #f(7 0 7.5) #f(6 0 4.5) #f(4 0 2.5) #f(2 0 1.5) #f(1 0 0.1) #f(0 0 0.1)))
