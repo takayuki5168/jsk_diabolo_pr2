@@ -8,7 +8,6 @@ import tf
 from geometry_msgs.msg import Vector3
 import math
 
-
 class Logger:
     def __init__(self):
         rospy.init_node("logger")
