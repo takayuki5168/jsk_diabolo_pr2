@@ -7,7 +7,5 @@
   
   <node name="pub_diabolo_model" pkg="jsk_diabolo_pr2" type="publish_diabolo_model" />
 
-  <node name="rviz_diabolo" pkg="rviz" type="rviz">
-    <param name="-d" value="~/.rviz/idle_simulate.rviz"/>
-  </node>
+  <node name="rviz_diabolo" pkg="rviz" type="rviz" args="~/.rviz/idle_simulate.rviz" />
 </launch>
