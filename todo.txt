@@ -1,5 +1,5 @@
 # TODO
-training online
+training online, measure time of training so that determine loop_num
 plot weight
 predict some steps when realtime mpc
 

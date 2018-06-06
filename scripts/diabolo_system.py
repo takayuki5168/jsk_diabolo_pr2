@@ -1,18 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# CHECK
-# (self.init_state is [0, 0]   # only use for simulation)
-# self.state_ref is [0, 0]
-# action is 2
-
 # TODO
 #   sometime, subscribe state is very slow
-#   increase log_files
 #   also subscribe input(arm, base) when simulate (and optimize_input and)
 
 # DONE
 #   consider frequency of noise, covariance
+#     -> apply LPF
 
 # if not using zerograds, what happens
 
@@ -32,21 +27,6 @@ from matplotlib import pyplot as plt
 import rospy
 from std_msgs.msg import Float64MultiArray, Float64
 
-'''
-LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
-             '../log/log-by-logger/log-by-loggerpy1.log',
-             '../log/log-by-logger/log-by-loggerpy2.log',
-             '../log/log-by-logger/log-by-loggerpy3.log',
-             '../log/log-by-logger/log-by-loggerpy4.log',
-             '../log/log-by-logger/log-by-loggerpy5.log',
-             '../log/log-by-logger/log-by-loggerpy6.log']             
-'''
-'''
-LOG_FILES = ['../log/log-by-logger/log-by-loggerpy1_0.log',
-             '../log/log-by-logger/log-by-loggerpy1_1.log',
-             '../log/log-by-logger/log-by-loggerpy1_2.log',
-             '../log/log-by-logger/log-by-loggerpy1_3.log']
-'''
 LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
              '../log/log-by-logger/log-by-loggerpy1.log',
              '../log/log-by-logger/log-by-loggerpy2.log',
@@ -98,6 +78,8 @@ class DiaboloSystem():
         
         self.DELTA_STEP = 5   # FIX
 
+        self.lpf_average_num = 10        
+
         # HyperParameters for NeuralNetwork
         self.INPUT_NN_DIM = self.STATE_DIM * self.PAST_STATE_NUM + self.INPUT_DIM * self.PAST_INPUT_NUM
         self.OUTPUT_NN_DIM = self.STATE_DIM
@@ -106,7 +88,6 @@ class DiaboloSystem():
 
         # reference of state
         self.state_ref = [0., 0.]   # FIX
-        #self.state_ref = [10., 0.]   # FIX        
 
         # real data
         self.past_states = []
@@ -135,7 +116,6 @@ class DiaboloSystem():
         self.state_pitch = []
         self.state_yaw = []
 
-        lpf_average_num = 10
         self.input_arm_lpf = []
         self.input_base_lpf = []
         self.state_pitch_lpf = []
@@ -155,20 +135,20 @@ class DiaboloSystem():
                     self.state_pitch.append(float(val[2]))
                     self.state_yaw.append(float(val[3][:-1]))
 
-                    if cnt > lpf_average_num:
+                    if cnt > self.lpf_average_num:
                         a = 0
                         b = 0
                         p = 0
                         y = 0
-                        for i in range(lpf_average_num):
+                        for i in range(self.lpf_average_num):
                             a += self.input_arm[-i]
                             b += self.input_base[-i]
                             p += self.state_pitch[-i]
                             y += self.state_yaw[-i]
-                        self.input_arm_lpf.append(a / lpf_average_num)
-                        self.input_base_lpf.append(b / lpf_average_num)
-                        self.state_pitch_lpf.append(p / lpf_average_num)
-                        self.state_yaw_lpf.append(y / lpf_average_num)
+                        self.input_arm_lpf.append(a / self.lpf_average_num)
+                        self.input_base_lpf.append(b / self.lpf_average_num)
+                        self.state_pitch_lpf.append(p / self.lpf_average_num)
+                        self.state_yaw_lpf.append(y / self.lpf_average_num)
 
     # arrange data for NeuralNetwork
     def arrange_data(self):
@@ -225,10 +205,12 @@ class DiaboloSystem():
             x.append(self.X[s + i])
             y.append(self.Y[s + i])
         return np.array(x), np.array(y)
-    
+
+    # load trained NeuralNetwork model
     def load_model(self, log_file='../log/diabolo_system/mymodel.h5'):
         serializers.load_hdf5(log_file, self.model)
-        
+
+    # save trained NeuralNetwork model
     def save_model(self):
         serializers.save_hdf5('../log/diabolo_system/mymodel.h5', self.model)
         
@@ -286,28 +268,63 @@ class DiaboloSystem():
                 time.sleep(1. / 20) # wait 20Hz                
                 # not subscribe(TODO subscribe input when PAST_INPUT_NUM >= 2)
         else:
+            self.past_states = []
+            self.past_inputs = []
+            
+            self.input_arm_lpf = []
+            self.input_base_lpf = []
+            self.state_pitch_lpf = []
+            self.state_yaw_lpf = []
+
+            self.online_losses = []
+            
             rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
             rospy.spin()
             # callback_for_state is working background
             #   optimize_input
             #   publish_input
+            #   arrange data for train
+            #   online train
             
     def callback_for_state(self, msg):
         # assign past_states
+        '''
         if msg.data[0] == np.nan:
             msg.data[0] = self.past_states[-1][0]
         if msg.data[1] == np.nan:
             msg.data[1] = self.past_states[-1][1]
+        '''
         self.past_states.append([msg.data[0], msg.data[1]])
 
         # assign lpf state and input
-
+        if len(self.past_states) > self.lpf_average_num and len(self.past_inputs) > self.lpf_average_num:
+            a = 0
+            b = 0
+            p = 0
+            y = 0
+            for i in range(self.lpf_average_num):
+                a += self.past_inputs[-i][0]
+                b += self.past_inputs[-i][1]
+                p += self.past_states[-i][0]
+                y += self.past_states[-i][1]
+            self.input_arm_lpf.append(a / self.lpf_average_num)
+            self.input_base_lpf.append(b / self.lpf_average_num)
+            self.state_pitch_lpf.append(p / self.lpf_average_num)
+            self.state_yaw_lpf.append(y / self.lpf_average_num)
+        
         # optimize input
         if len(self.past_states) > self.PAST_STATE_NUM * self.DELTA_STEP:
             self.optimize_input()
             print('{} {} {} {}'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
+            self.past_inputs.append([self.now_input[0], self.now_input[1]])
             self.publish_input()
 
+
+        # TODOTODOTODO
+        return
+        #
+        # online training
+        #
         # arrange data for train
         if len(self.input_arm_lpf) < (max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP + batch_num:
             return
@@ -316,17 +333,18 @@ class DiaboloSystem():
         Y = []
         for i in range(batch_num):
             x = []
-            y = [self.state_pitch_lpf[i], self.state_yaw_lpf[i]]            
+            y = [self.state_pitch_lpf[-i], self.state_yaw_lpf[-i]]            
             for j in range(self.PAST_STATE_NUM):
-                x.append(self.state_pitch_lpf[i - (j + 1) * self.DELTA_STEP])
-                x.append(self.state_yaw_lpf[i - (j + 1) * self.DELTA_STEP])
+                x.append(self.state_pitch_lpf[-i - (j + 1) * self.DELTA_STEP])
+                x.append(self.state_yaw_lpf[-i - (j + 1) * self.DELTA_STEP])
             for j in range(self.PAST_INPUT_NUM):
-                x.append(self.input_arm_lpf[i - (j + 1) * self.DELTA_STEP])
-                x.append(self.input_base_lpf[i - (j + 1) * self.DELTA_STEP])
+                x.append(self.input_arm_lpf[-i - (j + 1) * self.DELTA_STEP])
+                x.append(self.input_base_lpf[-i - (j + 1) * self.DELTA_STEP])
             X.append(x)
             Y.append(y)
         
         # train
+        # TODO if this trainig can calculated in 20-30Hz
         loop_num = 3
         for i in range(loop_num):
             x_ = Variable(X.astype(np.float32).reshape(batch_num, 6))
@@ -338,6 +356,8 @@ class DiaboloSystem():
 
             loss.backward()
             self.optimizer.update()
+
+            self.online_losses.append(loss.data)            
         
     def publish_input(self):
         msg = Float64MultiArray()
@@ -410,25 +430,17 @@ if __name__ == '__main__':
 
     # init arg parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train", "-t", nargs='?', default=0, const=1, help="train NN or not")
-    parser.add_argument("--action", "-a", default=2, help="what action do you want")
-    parser.add_argument("--plot", "-p", nargs='?', default=1, const=1, help="plot loss graph or not")
+    parser.add_argument("--train", "-t", nargs='?', default=0, const=1, help="train NN")
+    parser.add_argument("--action", "-a", default=2, help="0:simulate 1:realtime feedback with simulate 2:realtime feedback with real robot")
+    parser.add_argument("--plot", "-p", nargs='?', default=1, const=1, help="plot loss of training")
     parser.add_argument("--model", "-m", default='../log/diabolo_system/mymodel.h5', help="which model do you use")            
     args = parser.parse_args()
 
-    # parse train
-    train_flag = int(args.train)
-
-    # parse action
-    action = int(args.action)   # 0:simulate  1:realtime feedback with simulate 2:realtime feedback with real robot
-
-    # parse plot
-    plot_loss_ = args.plot
-        
-    # which model
-    model_file = args.model
-    print('load model from {}'.format(model_file))
-
+    # parse
+    train_flag = int(args.train)   # parse train
+    action = int(args.action)   # parse action
+    plot_loss_ = int(args.plot)   # parse plot
+    model_file = args.model   # which model
     
     ds = DiaboloSystem()
     
@@ -446,8 +458,10 @@ if __name__ == '__main__':
         ds.make_model()
         print('[Train] pass')                
         ds.load_model(log_file=model_file)
-
+        print('load model from {}'.format(model_file))
+        
     # test
+    print('[Test] start')            
     ds.test()
 
     # action
