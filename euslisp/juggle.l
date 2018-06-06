@@ -32,6 +32,12 @@
 ;;    use local variable
 
 (defun init ()
+  (ros::load-ros-manifest "roseus")
+  (ros::roseus "juggle-system")
+
+  ;;
+  ;; init variables
+  ;;
   (setq *idle-diabolo-pitch* 0)
   (setq *idle-diabolo-yaw* 0)
   
@@ -41,9 +47,9 @@
   (setq *diabolo-system-input-arm* 0)
   (setq *diabolo-system-input-base* 0)
   
-  (ros::load-ros-manifest "roseus")
-  (ros::roseus "juggle-system")
-
+  ;;
+  ;; Subscriber
+  ;;
   ;; subscribe idle diabolo state
   (ros::create-nodehandle "idle")  
   (ros::subscribe "calc_idle_diabolo_state/diabolo_state" std_msgs::Float64MultiArray
@@ -62,8 +68,10 @@
 		  :groupname "toss")
   
   ;; subscribe joy
-  ;;(ros::subscribe "joy" sensor_msgs::Joy
-  ;;		  #'(lambda (msg) (setq *joy* (send msg :axes))))
+  (ros::create-nodehandle "joy")  
+  (ros::subscribe "joy" sensor_msgs::Joy
+  		  #'(lambda (msg) (setq *joy* (send msg :axes)))
+		  :groupname "joy")
 
   ;; subscribe DiaboloSystem
   (ros::create-nodehandle "diabolo-system")  
@@ -81,12 +89,18 @@
 				    ))
 		  :groupname "diabolo-system-simulate")
 
- ;; publish whether idle or not
+  ;;
+  ;; Publisher
+  ;;
+  ;; publish whether idle or not
   (ros::advertise "idle" std_msgs::float64 1)
 
   ;; publish larm
   ;;(ros::advertise "/l_arm_controller/follow_joint_trajectory/goal" control_msgs::FollowJointTrajectoryActionGoal 1)  
-  
+
+  ;;
+  ;; init PR2
+  ;;
   (load "package://pr2eus/pr2-interface.l")
   (pr2-init)
   
