@@ -5,9 +5,9 @@ $ roslaunch idle_diabolo.launch
 ```
 
 ```eus
-roseus juggle.l
+$ roseus juggle.l
 
-  idle t t t
+    idle t t t
 ```
 
 ### demo
@@ -21,18 +21,18 @@ $ roslaunch idle_diabolo.launch
 ```
 
 ```eus
-roseus juggle.l
-  idle t t t :diabolo-system t
+$ roseus juggle.l
+    idle t t t :diabolo-system t
 ```
 
 ## toss
 ```sh
-roslaunch toss_diabolo.launch
+$ roslaunch toss_diabolo.launch
 ```
 
 ```eus
-roseus juggle.l
-  toss
+$ roseus juggle.l
+    toss
 ```
 
 # In Simulation
@@ -40,14 +40,14 @@ roseus juggle.l
 
 ## idle with MPC
 ```sh
-idle_diabolo_simulate.launch
-  roslaunch pr2_description upload_pr2.launch
-  roseus juggle.l
-    idle nil t t :simulate t :diabolo-system t ;; subscribe diabolo-system-input and send *ri*
-    (idle nil t t :simulate t ;; subscribe state and calc input and send *ri*)
-  rosrun jsk_diaoblo_pr2 publish_diabolo_model   ;; publish diabolo dae model
-  roslaunch jsk_diabolo_pr2 robot_state_publisher   ;; translate joint_states to tf for RViz
-  rosrun rviz rviz -d ~/.rviz/idle_simulate.rviz
+$ roslaunch idle_diabolo_simulate.launch
+    roslaunch pr2_description upload_pr2.launch
+    roseus juggle.l
+      idle nil t t :simulate t :diabolo-system t ;; subscribe diabolo-system-input and send *ri*
+      (idle nil t t :simulate t ;; subscribe state and calc input and send *ri*)
+    rosrun jsk_diaoblo_pr2 publish_diabolo_model   ;; publish diabolo dae model
+    roslaunch jsk_diabolo_pr2 robot_state_publisher   ;; translate joint_states to tf for RViz
+    rosrun rviz rviz -d ~/.rviz/idle_simulate.rviz
 ```
 
 ```sh
