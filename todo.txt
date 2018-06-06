@@ -1,19 +1,26 @@
 # TODO
-# in publish_diabolo_model.cpp, subscribe arm EE to visualize string
-
-# subscribe input in diabolo_system realtime feedback with simulation
-
-# make tf of map base_footprint in juggle.l
-
-# refactor
-
-# whether everything work well after refactoring
-
-# simulate in rviz(latch?)
-
 training online
-
+plot weight
 predict some steps when realtime mpc
+
+consider optimization of controller
+  modify loss func
+    x loss(pitch_diff, yaw_diff) = pitch_diff + yaw_diff
+    o loss(pitch_diff, yaw_diff) = w1 * pitch_diff + w2 * yaw_diff
+
+
+
+in publish_diabolo_model.cpp, subscribe arm EE to visualize string
+subscribe input in diabolo_system realtime feedback with simulation
+make tf of map base_footprint in juggle.l
+
+refactor
+whether everything work well after refactoring
+simulate in rviz(latch?)
+
+
+
+
 
 calc pitch more acculately
   not use one point, use some points when calculating pitch. at least 3 points each
@@ -30,10 +37,6 @@ consider model
   the way not to overfit
     -> decrease neuron of middle layer
 
-consider optimization of controller
-  modify loss func
-    x loss(pitch_diff, yaw_diff) = pitch_diff + yaw_diff
-    o loss(pitch_diff, yaw_diff) = w1 * pitch_diff + w2 * yaw_diff
 
 add physical parameters
   train

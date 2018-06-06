@@ -42,10 +42,24 @@ LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
              '../log/log-by-logger/log-by-loggerpy5.log',
              '../log/log-by-logger/log-by-loggerpy6.log']             
 '''
+'''
 LOG_FILES = ['../log/log-by-logger/log-by-loggerpy1_0.log',
              '../log/log-by-logger/log-by-loggerpy1_1.log',
              '../log/log-by-logger/log-by-loggerpy1_2.log',
              '../log/log-by-logger/log-by-loggerpy1_3.log']
+'''
+LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
+             '../log/log-by-logger/log-by-loggerpy1.log',
+             '../log/log-by-logger/log-by-loggerpy2.log',
+             '../log/log-by-logger/log-by-loggerpy3.log',
+             '../log/log-by-logger/log-by-loggerpy4.log',
+             '../log/log-by-logger/log-by-loggerpy5.log',
+             '../log/log-by-logger/log-by-loggerpy6.log',
+             '../log/log-by-logger/log-by-loggerpy1_0.log',
+             '../log/log-by-logger/log-by-loggerpy1_1.log',
+             '../log/log-by-logger/log-by-loggerpy1_2.log',
+             '../log/log-by-logger/log-by-loggerpy1_3.log']
+
 
 class MyChain(Chain):
     def __init__(self):
