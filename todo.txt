@@ -3,6 +3,8 @@ training online
 plot weight
 predict some steps when realtime mpc
 
+
+
 consider optimization of controller
   modify loss func
     x loss(pitch_diff, yaw_diff) = pitch_diff + yaw_diff
@@ -12,7 +14,6 @@ consider optimization of controller
 
 in publish_diabolo_model.cpp, subscribe arm EE to visualize string
 subscribe input in diabolo_system realtime feedback with simulation
-make tf of map base_footprint in juggle.l
 
 refactor
 whether everything work well after refactoring
