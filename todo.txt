@@ -1,4 +1,6 @@
 # TODO
+# in publish_diabolo_model.cpp, subscribe arm EE to visualize string
+
 # subscribe input in diabolo_system realtime feedback with simulation
 
 # make tf of map base_footprint in juggle.l

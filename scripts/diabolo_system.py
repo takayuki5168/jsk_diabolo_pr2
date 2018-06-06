@@ -93,7 +93,7 @@ class DiaboloSystem():
         self.batch_size = 1000   # FIX
 
         # reference of state
-        self.state_ref = [-30., 0.]   # FIX
+        self.state_ref = [0., 0.]   # FIX
         #self.state_ref = [10., 0.]   # FIX        
 
         # real data
