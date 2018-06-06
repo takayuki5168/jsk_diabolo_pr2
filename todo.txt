@@ -3,11 +3,15 @@
 
 # make tf of map base_footprint in juggle.l
 
-#refactor
+# refactor
 
 # whether everything work well after refactoring
 
 # simulate in rviz(latch?)
+
+training online
+
+predict some steps when realtime mpc
 
 calc pitch more acculately
   not use one point, use some points when calculating pitch. at least 3 points each
@@ -28,8 +32,6 @@ consider optimization of controller
   modify loss func
     x loss(pitch_diff, yaw_diff) = pitch_diff + yaw_diff
     o loss(pitch_diff, yaw_diff) = w1 * pitch_diff + w2 * yaw_diff
-
-training online
 
 add physical parameters
   train
