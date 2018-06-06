@@ -5,10 +5,9 @@
 # (self.init_state is [0, 0]   # only use for simulation)
 # self.state_ref is [0, 0]
 # action is 2
-# self.MAX_INPUT_DIFF_RESTRICTION
 
 # TODO
-#   sometime, subscribe is very slow
+#   sometime, subscribe state is very slow
 #   increase log_files
 #   also subscribe input(arm, base) when simulate (and optimize_input and)
 
@@ -102,7 +101,6 @@ class DiaboloSystem():
         # HyperParameters for NeuralNetwork
         self.INPUT_NN_DIM = self.STATE_DIM * self.PAST_STATE_NUM + self.INPUT_DIM * self.PAST_INPUT_NUM
         self.OUTPUT_NN_DIM = self.STATE_DIM
-        #self.VAR_NUM = max(self.INPUT_NN_DIM, self.OUTPUT_NN_DIM)
         self.train_test_ratio = 0.8   # FIX
         self.batch_size = 1000   # FIX
 
@@ -115,8 +113,7 @@ class DiaboloSystem():
         self.now_input = [0.7, 0]
 
         # max min restriction for input
-        #self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.001]
-        self.MAX_INPUT_DIFF_RESTRICTION = [10, 10]   # TODOTODOTODO
+        self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.01]        
         self.MAX_INPUT_RESTRICTION = [0.85, 0.34]   # TODO
         self.MIN_INPUT_RESTRICTION = [0.60, -0.34]   # TODO        
 
