@@ -49,7 +49,10 @@
   (setq *right-z-diff* 150)
   (send *ri* :angle-vector (idle-control 0 simulate) 1500) ;;800)
   (send *pr2* :head-neck-p :joint-angle 50)  
-  
+
+  (if (eq simulate t)
+      (setq *tfb* (instance ros::transform-broadcaster :init))
+    )
   (do-until-key
    ;; subscribe
    (ros::spin-once "idle")
@@ -156,8 +159,13 @@
    ;; when simulation
    (if (eq simulate t)
        (progn
-	 ;; make tf from /map to /base_footprint
-
+	 ;; make tf-broadcaster from /map to /base_footprint
+	 (setq *diff-theta* *idle-diabolo-yaw-rad*)	 
+	 (setq *ret* (make-coords :pos (float-vector (* *diff-x* 1000) (* *diff-y* 1000) 0) :rpy (float-vector *diff-theta* 0 0)))
+	 (setq *frame-id* "/map")
+	 (setq *type* "/base_footprint")
+	 (send *tfb* :send-transform *ret* *frame-id* *type*)
+	 
 	 ;; publish joint state
 	 (send *ri* :publish-joint-state)
 	 (ros::sleep)

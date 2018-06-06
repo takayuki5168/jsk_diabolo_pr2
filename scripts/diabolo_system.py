@@ -296,16 +296,52 @@ class DiaboloSystem():
             #   publish_input
             
     def callback_for_state(self, msg):
+        # assign past_states
         if msg.data[0] == np.nan:
             msg.data[0] = self.past_states[-1][0]
         if msg.data[1] == np.nan:
             msg.data[1] = self.past_states[-1][1]
         self.past_states.append([msg.data[0], msg.data[1]])
+
+        # assign lpf state and input
+
+        # optimize input
         if len(self.past_states) > self.PAST_STATE_NUM * self.DELTA_STEP:
             self.optimize_input()
             print('{} {} {} {}'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
-            self.publish_input()                            
+            self.publish_input()
 
+        # arrange data for train
+        if len(self.input_arm_lpf) < (max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP + batch_num:
+            return
+        batch_num = 10
+        X = []
+        Y = []
+        for i in range(batch_num):
+            x = []
+            y = [self.state_pitch_lpf[i], self.state_yaw_lpf[i]]            
+            for j in range(self.PAST_STATE_NUM):
+                x.append(self.state_pitch_lpf[i - (j + 1) * self.DELTA_STEP])
+                x.append(self.state_yaw_lpf[i - (j + 1) * self.DELTA_STEP])
+            for j in range(self.PAST_INPUT_NUM):
+                x.append(self.input_arm_lpf[i - (j + 1) * self.DELTA_STEP])
+                x.append(self.input_base_lpf[i - (j + 1) * self.DELTA_STEP])
+            X.append(x)
+            Y.append(y)
+        
+        # train
+        loop_num = 3
+        for i in range(loop_num):
+            x_ = Variable(X.astype(np.float32).reshape(batch_num, 6))
+            t_ = Variable(Y.astype(np.float32).reshape(batch_num, 2))
+        
+            self.model.zerograds()
+            self.model(x_)
+            loss = self.model.loss(t_)
+
+            loss.backward()
+            self.optimizer.update()
+        
     def publish_input(self):
         msg = Float64MultiArray()
         msg.data = [self.now_input[0], self.now_input[1]]
