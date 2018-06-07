@@ -5,8 +5,6 @@ use clear_grads()
 
 * training online(DONE), measure time of training so that determine loop_num
 * plot online of loss, when training online
-
-* plot weight (in_neruron + 1) * mid_neuron + (mid_neuron + 1) * out_neuron
 * predict some steps when realtime mpc
 
 * make video of real robot with rviz
@@ -14,12 +12,14 @@ use clear_grads()
 * in publish_diabolo_model.cpp, subscribe arm EE to visualize string
 * subscribe input in diabolo_system realtime feedback with simulation
 
+
+
 consider optimization of controller
   modify loss func
     x loss(pitch_diff, yaw_diff) = pitch_diff + yaw_diff
     o loss(pitch_diff, yaw_diff) = w1 * pitch_diff + w2 * yaw_diff
 
-
+let hrp2 juggle
 
 
 refactor
@@ -62,3 +62,5 @@ simulate by forwaring of NeurlNetwork
   translate to COLLADA
   diaplay in RViz
   move robot with euslisp
+
+plot weight (in_neruron + 1) * mid_neuron + (mid_neuron + 1) * out_neuron

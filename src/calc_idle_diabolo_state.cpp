@@ -43,8 +43,8 @@ private:
     marker_state_.id = 0;
     marker_state_.type = visualization_msgs::Marker::CYLINDER;
     marker_state_.action = visualization_msgs::Marker::ADD;
-    marker_state_.scale.x = 0.01;
-    marker_state_.scale.y = 0.01;
+    marker_state_.scale.x = 0.02;
+    marker_state_.scale.y = 0.02;
     marker_state_.scale.z = 0.5;
     marker_state_.color.r = 0.0f;
     marker_state_.color.g = 1.0f;

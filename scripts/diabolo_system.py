@@ -219,8 +219,9 @@ class DiaboloSystem():
     def save_model(self):
         serializers.save_hdf5('../log/diabolo_system/mymodel.h5', self.model)
         
-    def train(self, loop_num=1000, plot_loss=True):
+    def train(self, loop_num=1000):
         losses =[]
+        # train loop_num
         for i in range(loop_num):
             self.percentage(i, loop_num)
             x, y = self.get_batch_train(self.batch_size)
@@ -232,15 +233,25 @@ class DiaboloSystem():
             self.model(x_)
             loss = self.model.loss(t_)
 
+
             loss.backward()
             self.optimizer.update()
             losses.append(loss.data)
-            
+
+        # plot loss
         print('[Train] loss is {}'.format(losses[-1]))
-        if plot_loss == True:
-            plt.plot(losses)
-            plt.yscale('log')
-            plt.show()
+        plt.title('Loss')
+        plt.xlabel('time[step]')
+        plt.ylabel('loss')                
+        plt.plot(losses)
+        plt.yscale('log')
+        plt.show()
+
+        # plot weight heatmap
+        wb1 = np.c_[self.model.l1.W.data, self.model.l1.b.data]
+        wb2 = np.c_[self.model.l2.W.data, self.model.l2.b.data]
+        wbs = [wb1, wb2]
+        self.draw_heatmap(wbs)
             
     def test(self):
         x, y = self.get_test()        
@@ -274,16 +285,6 @@ class DiaboloSystem():
                 time.sleep(1. / 20) # wait 20Hz                
                 # not subscribe(TODO subscribe input when PAST_INPUT_NUM >= 2)
         else:
-            # make NN model for n step prediction of MPC
-            '''
-            self.models = []
-            self.optimizers = []
-            for i in range(self.MPC_PREDICT_STEP):
-                self.models.append(MyChain())   # copy of self.model                
-                self.optimizers.append(optimizers.RMSprop(lr=0.01))
-                self.optimizers[i].setup(self.model)
-            '''
-
             # for realtime plot
             if self.online_training == True:
                 plt.ion()
@@ -378,13 +379,12 @@ class DiaboloSystem():
             print('online training : {}[s]   Is this lower than 0.033?'.format(train_end_time - train_start_time))
     
             #for realtime plot
-            plt.set_xdata(np.array(np.array([i for i in range(len(selfonline_losses))]))
+            plt.set_xdata(np.array(np.array([i for i in range(len(selfonline_losses))])))
             plt.set_ydata(self.online_losses)
     
             plt.draw()
             #plt.pause(0.01)
 
-    
     def publish_input(self):
         msg = Float64MultiArray()
         msg.data = [self.now_input[0], self.now_input[1]]
@@ -397,6 +397,19 @@ class DiaboloSystem():
 
     # CHECK
     def optimize_input(self): # TODO add max input restriction
+        '''
+        # make NN model for n step prediction of MPC
+        self.models = []
+        self.optimizers = []
+        for i in range(self.MPC_PREDICT_STEP):
+            self.models.append(MyChain())
+            self.models[-1].l1.W = self.model.l1.W
+            self.models[-1].l1.b = self.model.l1.b            
+            self.models[-1].l2.W = self.model.l2.W
+            self.models[-1].l2.b = self.model.l2.b
+            self.optimizers.append(optimizers.RMSprop(lr=0.01))
+            self.optimizers[i].setup(self.model)
+        '''
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
         loop_flag = True
@@ -429,7 +442,7 @@ class DiaboloSystem():
                 break
 
         self.now_input = [float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 0].data), float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 1].data)]
-        self.past_inputs.append([self.now_input[0], self.now_input[1]])        
+        self.past_inputs.append([self.now_input[0], self.now_input[1]])
 
     def simulate_once(self): # optimize input and simulate
         self.optimize_input()
@@ -450,7 +463,19 @@ class DiaboloSystem():
                 self.percentage(i, simulate_loop_num)                
                 self.simulate_once()
                 #f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], now_state[0], now_state[1]))
-                f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))                                
+                f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
+                          
+    def draw_heatmap(self, wbs):
+        fig, ax = plt.subplots(len(wbs), 1)
+        for i in range(len(wbs)):
+            wb = wbs[i]
+            #h = ax[i].pcolor(wb, cmap=plt.cm.Spectral, vmin=-1, vmax=1)
+            h = ax[i].pcolor(wb, cmap=plt.cm.Blues, vmin=-1, vmax=1)            
+            ax[i].set_xticks(np.arange(wb.shape[1])+0.5, minor=False)
+            ax[i].set_yticks(np.arange(wb.shape[0])+0.5, minor=False)
+            ax[i].invert_yaxis()
+            ax[i].xaxis.tick_top()
+        plt.show()
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda signal, frame: sys.exit(0))
@@ -459,14 +484,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", "-t", nargs='?', default=0, const=1, help="train NN")
     parser.add_argument("--action", "-a", default=2, help="0:simulate 1:realtime feedback with simulate 2:realtime feedback with real robot")
-    parser.add_argument("--plot", "-p", nargs='?', default=1, const=1, help="plot loss of training")
+    #parser.add_argument("--plot", "-p", nargs='?', default=1, const=1, help="plot loss of training")
     parser.add_argument("--model", "-m", default='../log/diabolo_system/mymodel.h5', help="which model do you use")            
     args = parser.parse_args()
 
     # parse
     train_flag = int(args.train)   # parse train
     action = int(args.action)   # parse action
-    plot_loss_ = int(args.plot)   # parse plot
+    #plot_loss_ = int(args.plot)   # parse plot
     model_file = args.model   # which model
     
     ds = DiaboloSystem()
@@ -477,7 +502,7 @@ if __name__ == '__main__':
         ds.arrange_data()
         ds.make_model()
         print('[Train] start')        
-        ds.train(loop_num=1000, plot_loss=plot_loss_)
+        ds.train(loop_num=1000) #, plot_loss=plot_loss_)
         ds.save_model()
     else:
         ds.load_data(LOG_FILES)
