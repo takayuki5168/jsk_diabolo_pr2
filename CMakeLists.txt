@@ -10,11 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost REQUIRED COMPONENTS system)
 
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
-
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES jsk_2017_10_semi

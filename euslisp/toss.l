@@ -15,7 +15,7 @@
 (defun toss-only ()
   ;;(send *ri* :angle-vector *toss-start-pos* 3000)
   ;;(send *ri* :wait-interpolation)
-  (send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.2)    
+  (send *ri* :angle-vector *toss-goal-pos* 400 :default-controller 0 :end-coords-interpolation t :min-time 0.3) ;;0.2)    
   (send *ri* :wait-interpolation-smooth 250)  
   (send *ri* :angle-vector *toss-save-pos* 800)
   ;;(send *ri* :wait-interpolation)
