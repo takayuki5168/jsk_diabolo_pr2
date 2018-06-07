@@ -20,6 +20,8 @@ public:
 
     // Marker
     initMarker();
+
+
   }
 
   void execute() {
@@ -31,9 +33,6 @@ public:
       catch (tf::TransformException ex){
 	//ROS_ERROR("%s",ex.what());
       }
-      std::cout << tf_right_.getOrigin().x() << " " << tf_right_.getOrigin().y() << " " << tf_right_.getOrigin().z() << std::endl;
-      std::cout << tf_left_.getOrigin().x() << " " << tf_left_.getOrigin().y() << " " << tf_left_.getOrigin().z() << std::endl;      
-      
       ros::spinOnce();
     }
   }
@@ -68,14 +67,12 @@ private:
     marker_string_right_.id = 0;
     marker_string_right_.type = visualization_msgs::Marker::LINE_STRIP;    
     marker_string_right_.action = visualization_msgs::Marker::ADD;
-    marker_string_right_.scale.x = 10;
-    marker_string_right_.scale.y = 10;
-    marker_string_right_.scale.z = 10;    
+    marker_string_right_.scale.x = 0.003;
     marker_string_right_.pose.orientation.w = 1.0;
     marker_string_right_.color.r = 1.0f;
     marker_string_right_.color.g = 1.0f;
     marker_string_right_.color.b = 1.0f;
-    marker_string_right_.lifetime = ros::Duration();
+    marker_string_right_.color.a = 1.0f;        
 
     /*
      * marker string left
@@ -86,14 +83,12 @@ private:
     marker_string_left_.id = 0;
     marker_string_left_.type = visualization_msgs::Marker::LINE_STRIP;
     marker_string_left_.action = visualization_msgs::Marker::ADD;
-    marker_string_left_.scale.x = 10;
-    marker_string_left_.scale.y = 10;
-    marker_string_left_.scale.z = 10;    
+    marker_string_left_.scale.x = 0.003;
     marker_string_left_.pose.orientation.w = 1.0;    
-    marker_string_left_.color.r = 0.0f;
+    marker_string_left_.color.r = 1.0f;
     marker_string_left_.color.g = 1.0f;
     marker_string_left_.color.b = 1.0f;
-    marker_string_left_.lifetime = ros::Duration();
+    marker_string_left_.color.a = 1.0f;    
   }
 
   void publishMarker()
@@ -118,25 +113,15 @@ private:
     marker_string_right_.header.frame_id = "/base_footprint";
     marker_string_right_.header.stamp = ros::Time::now();
     marker_string_right_.points.clear();
-    marker_string_right_.pose.orientation.x = 0.0;
-    marker_string_right_.pose.orientation.y = 0.0;
-    marker_string_right_.pose.orientation.z = 0.0;
     marker_string_right_.pose.orientation.w = 1.0;
-    marker_string_right_.pose.position.x = 0.0;
-    marker_string_right_.pose.position.y = 0.0;
-    marker_string_right_.pose.position.z = 0.0;
-    p.x = 100;//tf_right_.getOrigin().x();
-    p.y = 100;//tf_right_.getOrigin().y();
-    p.z = 100;//tf_right_.getOrigin().z();     
+    p.x = tf_right_.getOrigin().x();
+    p.y = tf_right_.getOrigin().y();
+    p.z = tf_right_.getOrigin().z();     
     marker_string_right_.points.push_back(p);
     p.x = 0.7;
-    p.y = 0;
+    p.y = -0.01;
     p.z = 0.21;
     marker_string_right_.points.push_back(p);
-    p.x = 100;
-    p.y = 0;
-    p.z = 0;
-    marker_string_right_.points.push_back(p);    
     pub_marker_string_right_.publish(marker_string_right_);
 
     /*
@@ -150,13 +135,9 @@ private:
     p.z = tf_left_.getOrigin().z();     
     marker_string_left_.points.push_back(p);
     p.x = 0.7;
-    p.y = 0;
+    p.y = 0.01;
     p.z = 0.21;
     marker_string_left_.points.push_back(p);
-    p.x = 100;
-    p.y = 0;
-    p.z = 0;
-    marker_string_left_.points.push_back(p);    
     pub_marker_string_left_.publish(marker_string_left_);
   }
   
@@ -175,7 +156,7 @@ private:
   visualization_msgs::Marker marker_diabolo_model_, marker_string_right_, marker_string_left_;
   ros::Rate r_;
   tf::TransformListener tfl_right_, tfl_left_;
-  tf::StampedTransform tf_right_, tf_left_;  
+  tf::StampedTransform tf_right_, tf_left_;
 
   // diabolo state
   double pitch_, yaw_;  
