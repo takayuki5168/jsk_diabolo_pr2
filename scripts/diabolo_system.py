@@ -90,7 +90,7 @@ class DiaboloSystem():
         # reference of state
         self.state_ref = [0., 0.]   # FIX
 
-        self.mpc_predict_step = 10;
+        self.MPC_PREDICT_STEP = 10;
         self.online_training = False
 
         # real data
@@ -278,7 +278,7 @@ class DiaboloSystem():
             '''
             self.models = []
             self.optimizers = []
-            for i in range(self.mpc_predict_step):
+            for i in range(self.MPC_PREDICT_STEP):
                 self.models.append(MyChain())   # copy of self.model                
                 self.optimizers.append(optimizers.RMSprop(lr=0.01))
                 self.optimizers[i].setup(self.model)
