@@ -9,6 +9,8 @@ use clear_grads()
 
 * make video of real robot with rviz
 
+* let hrp2 juggle
+
 * in publish_diabolo_model.cpp, subscribe arm EE to visualize string
 * subscribe input in diabolo_system realtime feedback with simulation
 
@@ -19,7 +21,7 @@ consider optimization of controller
     x loss(pitch_diff, yaw_diff) = pitch_diff + yaw_diff
     o loss(pitch_diff, yaw_diff) = w1 * pitch_diff + w2 * yaw_diff
 
-let hrp2 juggle
+
 
 
 refactor

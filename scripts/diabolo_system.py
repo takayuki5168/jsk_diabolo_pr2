@@ -13,7 +13,7 @@
 # not use zerograds, but cleargrads
 
 
-import random, time, sys, signal
+import random, time, sys, signal, copy
 import numpy as np
 import argparse
 
@@ -271,6 +271,7 @@ class DiaboloSystem():
 
     def realtime_feedback(self, simulate=False, online_training=False):
         self.online_training = online_training
+        print('[RealtimeFeedback] online training is {}'.format(self.online_training))        
         
         print('[RealtimeFeedback] reference of diabolo state is {}'.format(self.state_ref))
         if simulate == True:
@@ -291,7 +292,8 @@ class DiaboloSystem():
                 plt.figure()
                 
                 plt.title("Loss")
-                plt.plot(self.t, self.pitch)
+                #plt.plot(self.t, self.pitch)
+                self.li, = plt.plot(np.zeros(100), np.zeros(100))
                 plt.xlabel("time[step]")
                 plt.ylabel("loss")
                 
@@ -306,7 +308,19 @@ class DiaboloSystem():
             self.state_yaw_lpf = []
             
             rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
-            rospy.spin()
+            while True:
+                #for realtime plot
+                plot_num = min(100, len(self.online_losses) - 1)
+                losses = copy.deepcopy(self.online_losses[-plot_num:]) # prevent from not same length between x and y because of async callback
+                self.li.set_xdata(np.array([i for i in range(len(losses))]))
+                self.li.set_ydata(losses)
+                plt.xlim(0, len(losses))
+                if len(self.online_losses) > 0:
+                    plt.ylim(min(self.online_losses), max(self.online_losses[-int(plot_num / 2.):]) * 2)
+                plt.draw()
+                plt.pause(0.001)
+                
+            # rospy.spin()
             # callback_for_state is working background
             #   optimize_input
             #   publish_input
@@ -340,12 +354,13 @@ class DiaboloSystem():
             self.publish_input()
 
         # online training
+        batch_num = 10
         if self.online_training == True:
             train_start_time = time.time()
             # arrange data for train
             if len(self.input_arm_lpf) < (max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP + batch_num:
                 return
-            batch_num = 10
+
             X = []
             Y = []
             for i in range(batch_num):
@@ -362,9 +377,10 @@ class DiaboloSystem():
             
             # train   TODO if this trainig can calculated in 20-30Hz
             loop_num = 3
+            losses = 0
             for i in range(loop_num):
-                x_ = Variable(X.astype(np.float32).reshape(batch_num, 6))
-                t_ = Variable(Y.astype(np.float32).reshape(batch_num, 2))
+                x_ = Variable(np.array(X).astype(np.float32).reshape(batch_num, 6))
+                t_ = Variable(np.array(Y).astype(np.float32).reshape(batch_num, 2))
             
                 self.model.zerograds()
                 self.model(x_)
@@ -372,19 +388,14 @@ class DiaboloSystem():
     
                 loss.backward()
                 self.optimizer.update()
+
+                losses += loss.data
     
-                self.online_losses.append(loss.data)
+            self.online_losses.append(losses / loop_num)
                 
             train_end_time = time.time()
             print('online training : {}[s]   Is this lower than 0.033?'.format(train_end_time - train_start_time))
     
-            #for realtime plot
-            plt.set_xdata(np.array(np.array([i for i in range(len(selfonline_losses))])))
-            plt.set_ydata(self.online_losses)
-    
-            plt.draw()
-            #plt.pause(0.01)
-
     def publish_input(self):
         msg = Float64MultiArray()
         msg.data = [self.now_input[0], self.now_input[1]]
@@ -482,10 +493,11 @@ if __name__ == '__main__':
 
     # init arg parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train", "-t", nargs='?', default=0, const=1, help="train NN")
+    parser.add_argument("--train", "-t", nargs='?', default=False, const=True, help="train NN")
     parser.add_argument("--action", "-a", default=2, help="0:simulate 1:realtime feedback with simulate 2:realtime feedback with real robot")
     #parser.add_argument("--plot", "-p", nargs='?', default=1, const=1, help="plot loss of training")
-    parser.add_argument("--model", "-m", default='../log/diabolo_system/mymodel.h5', help="which model do you use")            
+    parser.add_argument("--model", "-m", default='../log/diabolo_system/mymodel.h5', help="which model do you use")
+    parser.add_argument("--online_training", "-o", nargs='?', default=False, const=True, help="oneline training")                
     args = parser.parse_args()
 
     # parse
@@ -493,6 +505,7 @@ if __name__ == '__main__':
     action = int(args.action)   # parse action
     #plot_loss_ = int(args.plot)   # parse plot
     model_file = args.model   # which model
+    online_training_ = args.online_training   # which model
     
     ds = DiaboloSystem()
     
@@ -525,5 +538,4 @@ if __name__ == '__main__':
         ds.realtime_feedback(simulate=True, online_training=False)
     elif action == 2:
         print('[RealtimeFeedback] start with real robot')                
-        ds.realtime_feedback(simulate=False, online_training=False)
-        #ds.realtime_feedback(simulate=False, online_training=True)        
+        ds.realtime_feedback(simulate=False, online_training=online_training_)

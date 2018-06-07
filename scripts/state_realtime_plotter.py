@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64MultiArray
 
 import numpy as np
 from matplotlib import pyplot as plt
 
-from time import sleep
 import sys, signal
 import math
 
@@ -19,8 +18,7 @@ class PitchYawPlotter:
 
     def initNode(self):
         rospy.init_node('listener', anonymous=True)
-        rospy.Subscriber("sample_pcl/diabolo/pitch", Float64, self.callbackForPitch)
-        rospy.Subscriber("sample_pcl/diabolo/yaw", Float64, self.callbackForYaw)
+        rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callbackForDiaboloState)
 
     def initGraph(self):
         self.t = np.zeros(20)
@@ -47,11 +45,9 @@ class PitchYawPlotter:
     
         self.now_time = 0;
 
-    def callbackForPitch(self, data):
-        self.now_pitch = data.data
-        
-    def callbackForYaw(self, data):
-        self.now_yaw = data.data
+    def callbackForDiaboloState(self, data):
+        self.now_pitch = data.data[0]
+        self.now_yaw = data.data[1]
     
     def plot(self):
         while True:
