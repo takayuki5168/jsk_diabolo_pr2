@@ -9,7 +9,6 @@ public:
   PublishDiaboloModelNode() : nh_(""), pnh_("~"), r_(30), pitch_(0), yaw_(0)
   {
     // Subscriber
-    //sub_diabolo_state_ = pnh_.subscribe("/calc_idle_diabolo_state/diabolo_state", 1, &PublishDiaboloModelNode::messageCallback, this);
     sub_diabolo_state_ = pnh_.subscribe("/diabolo_system/diabolo_state", 1, &PublishDiaboloModelNode::messageCallbackForDiaboloState, this);
     //sub_diabolo_arm_ = pnh_.subscribe("/diabolo_system/diabolo_state", 1, &PublishDiaboloModelNode::messageCallback, this);        
 

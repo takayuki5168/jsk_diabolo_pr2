@@ -1,9 +1,18 @@
 # TODO
-training online, measure time of training so that determine loop_num
-plot weight
-predict some steps when realtime mpc
+see data num of implemented lastly
 
+use clear_grads()
 
+* training online(DONE), measure time of training so that determine loop_num
+* plot online of loss, when training online
+
+* plot weight (in_neruron + 1) * mid_neuron + (mid_neuron + 1) * out_neuron
+* predict some steps when realtime mpc
+
+* make video of real robot with rviz
+
+* in publish_diabolo_model.cpp, subscribe arm EE to visualize string
+* subscribe input in diabolo_system realtime feedback with simulation
 
 consider optimization of controller
   modify loss func
@@ -12,32 +21,22 @@ consider optimization of controller
 
 
 
-in publish_diabolo_model.cpp, subscribe arm EE to visualize string
-subscribe input in diabolo_system realtime feedback with simulation
 
 refactor
-whether everything work well after refactoring
-simulate in rviz(latch?)
-
-
-
-
+  whether everything work well after refactoring
+what is latch
 
 calc pitch more acculately
   not use one point, use some points when calculating pitch. at least 3 points each
   
-simulate by forwaring of NeurlNetwork
-  make diabolo of eus model
-  translate to COLLADA
-  diaplay in RViz
-  move robot with euslisp
+
+
+
 
 consider model
   x(t) = f(x(t-1), x(t-2), u(t-1)
   dx(t)/dt = f(x(t-1), x(t-2), u(t-1)  <- this is better?
   the way not to overfit
-    -> decrease neuron of middle layer
-
 
 add physical parameters
   train
@@ -57,3 +56,9 @@ fit
   
 predict
   see accuracy
+
+simulate by forwaring of NeurlNetwork
+  make diabolo of eus model
+  translate to COLLADA
+  diaplay in RViz
+  move robot with euslisp

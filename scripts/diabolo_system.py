@@ -10,6 +10,7 @@
 #     -> apply LPF
 
 # if not using zerograds, what happens
+# not use zerograds, but cleargrads
 
 
 import random, time, sys, signal
@@ -89,8 +90,12 @@ class DiaboloSystem():
         # reference of state
         self.state_ref = [0., 0.]   # FIX
 
+        self.mpc_predict_step = 10;
+        self.online_training = False
+
         # real data
         self.past_states = []
+        self.past_inputs = []        
         self.now_input = [0.7, 0]
 
         # max min restriction for input
@@ -222,14 +227,13 @@ class DiaboloSystem():
         
             x_ = Variable(x.astype(np.float32).reshape(self.batch_size, 6))
             t_ = Variable(y.astype(np.float32).reshape(self.batch_size, 2))
-        
+
             self.model.zerograds()
             self.model(x_)
             loss = self.model.loss(t_)
 
             loss.backward()
             self.optimizer.update()
-        
             losses.append(loss.data)
             
         print('[Train] loss is {}'.format(losses[-1]))
@@ -254,9 +258,11 @@ class DiaboloSystem():
                 f.write('{} {} {} {} {} {}\n'.format(x_[i][4].data, x_[i][5].data, t_[i][0].data, t_[i][1].data, self.model.res[i][0].data, self.model.res[i][1].data))
         print('[Test] loss is {}'.format(loss.data))
 
-    def realtime_feedback(self, simulate=False):
+    def realtime_feedback(self, simulate=False, online_training=False):
+        self.online_training = online_training
+        
         print('[RealtimeFeedback] reference of diabolo state is {}'.format(self.state_ref))
-        if simulate:
+        if simulate == True:
             #init_state = [0., 0.]
             init_state = [40., 0.]
 
@@ -268,6 +274,28 @@ class DiaboloSystem():
                 time.sleep(1. / 20) # wait 20Hz                
                 # not subscribe(TODO subscribe input when PAST_INPUT_NUM >= 2)
         else:
+            # make NN model for n step prediction of MPC
+            '''
+            self.models = []
+            self.optimizers = []
+            for i in range(self.mpc_predict_step):
+                self.models.append(MyChain())   # copy of self.model                
+                self.optimizers.append(optimizers.RMSprop(lr=0.01))
+                self.optimizers[i].setup(self.model)
+            '''
+
+            # for realtime plot
+            if self.online_training == True:
+                plt.ion()
+                plt.figure()
+                
+                plt.title("Loss")
+                plt.plot(self.t, self.pitch)
+                plt.xlabel("time[step]")
+                plt.ylabel("loss")
+                
+                self.online_losses = []                              
+            
             self.past_states = []
             self.past_inputs = []
             
@@ -275,8 +303,6 @@ class DiaboloSystem():
             self.input_base_lpf = []
             self.state_pitch_lpf = []
             self.state_yaw_lpf = []
-
-            self.online_losses = []
             
             rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
             rospy.spin()
@@ -288,12 +314,6 @@ class DiaboloSystem():
             
     def callback_for_state(self, msg):
         # assign past_states
-        '''
-        if msg.data[0] == np.nan:
-            msg.data[0] = self.past_states[-1][0]
-        if msg.data[1] == np.nan:
-            msg.data[1] = self.past_states[-1][1]
-        '''
         self.past_states.append([msg.data[0], msg.data[1]])
 
         # assign lpf state and input
@@ -316,49 +336,55 @@ class DiaboloSystem():
         if len(self.past_states) > self.PAST_STATE_NUM * self.DELTA_STEP:
             self.optimize_input()
             print('{} {} {} {}'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
-            self.past_inputs.append([self.now_input[0], self.now_input[1]])
             self.publish_input()
 
-
-        # TODOTODOTODO
-        return
-        #
         # online training
-        #
-        # arrange data for train
-        if len(self.input_arm_lpf) < (max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP + batch_num:
-            return
-        batch_num = 10
-        X = []
-        Y = []
-        for i in range(batch_num):
-            x = []
-            y = [self.state_pitch_lpf[-i], self.state_yaw_lpf[-i]]            
-            for j in range(self.PAST_STATE_NUM):
-                x.append(self.state_pitch_lpf[-i - (j + 1) * self.DELTA_STEP])
-                x.append(self.state_yaw_lpf[-i - (j + 1) * self.DELTA_STEP])
-            for j in range(self.PAST_INPUT_NUM):
-                x.append(self.input_arm_lpf[-i - (j + 1) * self.DELTA_STEP])
-                x.append(self.input_base_lpf[-i - (j + 1) * self.DELTA_STEP])
-            X.append(x)
-            Y.append(y)
-        
-        # train
-        # TODO if this trainig can calculated in 20-30Hz
-        loop_num = 3
-        for i in range(loop_num):
-            x_ = Variable(X.astype(np.float32).reshape(batch_num, 6))
-            t_ = Variable(Y.astype(np.float32).reshape(batch_num, 2))
-        
-            self.model.zerograds()
-            self.model(x_)
-            loss = self.model.loss(t_)
+        if self.online_training == True:
+            train_start_time = time.time()
+            # arrange data for train
+            if len(self.input_arm_lpf) < (max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP + batch_num:
+                return
+            batch_num = 10
+            X = []
+            Y = []
+            for i in range(batch_num):
+                x = []
+                y = [self.state_pitch_lpf[-i], self.state_yaw_lpf[-i]]            
+                for j in range(self.PAST_STATE_NUM):
+                    x.append(self.state_pitch_lpf[-i - (j + 1) * self.DELTA_STEP])
+                    x.append(self.state_yaw_lpf[-i - (j + 1) * self.DELTA_STEP])
+                for j in range(self.PAST_INPUT_NUM):
+                    x.append(self.input_arm_lpf[-i - (j + 1) * self.DELTA_STEP])
+                    x.append(self.input_base_lpf[-i - (j + 1) * self.DELTA_STEP])
+                X.append(x)
+                Y.append(y)
+            
+            # train   TODO if this trainig can calculated in 20-30Hz
+            loop_num = 3
+            for i in range(loop_num):
+                x_ = Variable(X.astype(np.float32).reshape(batch_num, 6))
+                t_ = Variable(Y.astype(np.float32).reshape(batch_num, 2))
+            
+                self.model.zerograds()
+                self.model(x_)
+                loss = self.model.loss(t_)
+    
+                loss.backward()
+                self.optimizer.update()
+    
+                self.online_losses.append(loss.data)
+                
+            train_end_time = time.time()
+            print('online training : {}[s]   Is this lower than 0.033?'.format(train_end_time - train_start_time))
+    
+            #for realtime plot
+            plt.set_xdata(np.array(np.array([i for i in range(len(selfonline_losses))]))
+            plt.set_ydata(self.online_losses)
+    
+            plt.draw()
+            #plt.pause(0.01)
 
-            loss.backward()
-            self.optimizer.update()
-
-            self.online_losses.append(loss.data)            
-        
+    
     def publish_input(self):
         msg = Float64MultiArray()
         msg.data = [self.now_input[0], self.now_input[1]]
@@ -403,6 +429,7 @@ class DiaboloSystem():
                 break
 
         self.now_input = [float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 0].data), float(x[0][self.PAST_STATE_NUM * self.STATE_DIM + 1].data)]
+        self.past_inputs.append([self.now_input[0], self.now_input[1]])        
 
     def simulate_once(self): # optimize input and simulate
         self.optimize_input()
@@ -413,7 +440,7 @@ class DiaboloSystem():
         now_state = [res[0][0].data, res[0][1].data]
         self.past_states.append(now_state)
 
-    def simulate_from_log(self, simulate_loop_num=1000):
+    def simulate_offline(self, simulate_loop_num=1000):
         #init_state = [0., 0.]
         init_state = [40., 0.]        
         
@@ -467,10 +494,11 @@ if __name__ == '__main__':
     # action
     if action == 0:
         print('[Simulate] start')
-        ds.simulate_from_log(simulate_loop_num=300)
+        ds.simulate_offline(simulate_loop_num=300)
     elif action == 1:
         print('[RealtimeFeedback] start with simulate')                
-        ds.realtime_feedback(simulate=True)
+        ds.realtime_feedback(simulate=True, online_training=False)
     elif action == 2:
         print('[RealtimeFeedback] start with real robot')                
-        ds.realtime_feedback(simulate=False)
+        ds.realtime_feedback(simulate=False, online_training=False)
+        #ds.realtime_feedback(simulate=False, online_training=True)        
