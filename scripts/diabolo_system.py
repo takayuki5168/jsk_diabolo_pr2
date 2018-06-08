@@ -173,7 +173,6 @@ class DiaboloSystem():
                     x.append(self.input_base_lpf[i - (j + 1) * self.DELTA_STEP])
                 self.X.append(x)
                 self.Y.append(y)
-                
         else: # for not LPF
             for i in range((max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP, len(self.input_arm)):
                 x = []
@@ -233,7 +232,6 @@ class DiaboloSystem():
             self.model(x_)
             loss = self.model.loss(t_)
 
-
             loss.backward()
             self.optimizer.update()
             losses.append(loss.data)
@@ -292,7 +290,6 @@ class DiaboloSystem():
                 plt.figure()
                 
                 plt.title("Loss")
-                #plt.plot(self.t, self.pitch)
                 self.li, = plt.plot(np.zeros(100), np.zeros(100))
                 plt.xlabel("time[step]")
                 plt.ylabel("loss")
@@ -473,14 +470,12 @@ class DiaboloSystem():
             for i in range(simulate_loop_num):   # simulation loop
                 self.percentage(i, simulate_loop_num)                
                 self.simulate_once()
-                #f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], now_state[0], now_state[1]))
                 f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
                           
     def draw_heatmap(self, wbs):
         fig, ax = plt.subplots(len(wbs), 1)
         for i in range(len(wbs)):
             wb = wbs[i]
-            #h = ax[i].pcolor(wb, cmap=plt.cm.Spectral, vmin=-1, vmax=1)
             h = ax[i].pcolor(wb, cmap=plt.cm.Blues, vmin=-1, vmax=1)            
             ax[i].set_xticks(np.arange(wb.shape[1])+0.5, minor=False)
             ax[i].set_yticks(np.arange(wb.shape[0])+0.5, minor=False)
@@ -495,7 +490,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", "-t", nargs='?', default=False, const=True, help="train NN")
     parser.add_argument("--action", "-a", default=2, help="0:simulate 1:realtime feedback with simulate 2:realtime feedback with real robot")
-    #parser.add_argument("--plot", "-p", nargs='?', default=1, const=1, help="plot loss of training")
     parser.add_argument("--model", "-m", default='../log/diabolo_system/mymodel.h5', help="which model do you use")
     parser.add_argument("--online_training", "-o", nargs='?', default=False, const=True, help="oneline training")                
     args = parser.parse_args()
@@ -503,7 +497,6 @@ if __name__ == '__main__':
     # parse
     train_flag = int(args.train)   # parse train
     action = int(args.action)   # parse action
-    #plot_loss_ = int(args.plot)   # parse plot
     model_file = args.model   # which model
     online_training_ = args.online_training   # which model
     
@@ -515,7 +508,7 @@ if __name__ == '__main__':
         ds.arrange_data()
         ds.make_model()
         print('[Train] start')        
-        ds.train(loop_num=1000) #, plot_loss=plot_loss_)
+        ds.train(loop_num=1000)
         ds.save_model()
     else:
         ds.load_data(LOG_FILES)

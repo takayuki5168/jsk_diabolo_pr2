@@ -1,16 +1,13 @@
 # TODO
 use clear_grads()
 
-* is it ok to while spinOnce, not spin in diabolo_system
+* is it ok to while spinOnce(acutually not use spinOnce), not spin in diabolo_system
+    when spin is called
 
 * test whether online training work well
 
 * predict some steps when realtime mpc
 
-* let hrp2 juggle
-    hrp2jsk or hrp2jsknt
-
-* in publish_diabolo_model.cpp, subscribe arm EE to visualize string
 * subscribe input in diabolo_system realtime feedback with simulation
 
 
@@ -71,3 +68,7 @@ training online
 plot online of loss, when training online
 
 make video of real robot with rviz
+
+let hrp2 juggle
+
+in publish_diabolo_model.cpp, subscribe arm EE to visualize string
