@@ -32,7 +32,7 @@ calc pitch more acculately
 
 
 consider model
-  x(t) = f(x(t-1), x(t-2), u(t-1)
+  x(t) = f(x(t-1), x(t-2), u(t-1))
   dx(t)/dt = f(x(t-1), x(t-2), u(t-1)  <- this is better?
   the way not to overfit
 

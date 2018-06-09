@@ -1,5 +1,5 @@
 <launch>
-   <include file="$(find pr2_description)/robots/upload_pr2.launch"/>
+  <include file="$(find pr2_description)/robots/upload_pr2.launch"/>
 
   <node name="diabolo_euslisp_idle_simulate" pkg="roseus" type="roseus" args="$(find jsk_diabolo_pr2)/euslisp/demo-idle-simulate.l" />
   

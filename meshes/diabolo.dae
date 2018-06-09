@@ -13,11 +13,11 @@ Z_UP</up_axis>
 <library_visual_scenes id="vscenes">
 <visual_scene id="vscene" name="Eus2Collada Visual Scene">
 <node id="visual1" sid="visual1" name="diabolo">
-<node id="bodyset84789528.node" name="bodyset84789528_node" sid="node0">
-<instance_geometry url="#bodyset84789528.geometry.0">
+<node id="bodyset84265240.node" name="bodyset84265240_node" sid="node0">
+<instance_geometry url="#bodyset84265240.geometry.0">
 <bind_material>
 <technique_common>
-<instance_material symbol="bodyset84789528.geometry.0.material" target="#bodyset84789528.geometry.0.material">
+<instance_material symbol="bodyset84265240.geometry.0.material" target="#bodyset84265240.geometry.0.material">
 </instance_material>
 </technique_common>
 </bind_material>
@@ -29,7 +29,7 @@ Z_UP</up_axis>
 <library_joints id="libjoints">
 </library_joints>
 <library_effects id="libeffect">
-<effect id="bodyset84789528.effect.0">
+<effect id="bodyset84265240.effect.0">
 <profile_COMMON>
 <technique sid="common">
 <phong>
@@ -47,12 +47,12 @@ Z_UP</up_axis>
 </effect>
 </library_effects>
 <library_materials id="libmat">
-<material id="bodyset84789528.geometry.0.material">
-<instance_effect url="#bodyset84789528.effect.0">
+<material id="bodyset84265240.geometry.0.material">
+<instance_effect url="#bodyset84265240.effect.0">
 </instance_effect>
 </material>
-<material id="bodyset84789528.geometry.1.material">
-<instance_effect url="#bodyset84789528.effect.1">
+<material id="bodyset84265240.geometry.1.material">
+<instance_effect url="#bodyset84265240.effect.1">
 </instance_effect>
 </material>
 </library_materials>
@@ -75,14 +75,14 @@ Z_UP</up_axis>
 <library_physics_scenes id="pscenes">
 <physics_scene id="pscene" name="Eus2Collada Physics Scene">
 <instance_physics_model url="#pmodel1" sid="pmodel1" parent="#visual1">
-<instance_rigid_body body="rigid0" target="#bodyset84789528.node">
+<instance_rigid_body body="rigid0" target="#bodyset84265240.node">
 </instance_rigid_body>
 </instance_physics_model>
 </physics_scene>
 </library_physics_scenes>
 <library_physics_models id="pmodels">
 <physics_model id="pmodel1" name="diabolo">
-<rigid_body id="rigid0" sid="rigid0" name="bodyset84789528_link">
+<rigid_body id="rigid0" sid="rigid0" name="bodyset84265240_link">
 <technique_common>
 <mass>
 0.001</mass>
@@ -98,7 +98,7 @@ Z_UP</up_axis>
 1.000000e-09 1.000000e-09 1.000000e-09 
 </inertia>
 <shape>
-<instance_geometry url="#bodyset84789528.geometry.0">
+<instance_geometry url="#bodyset84265240.geometry.0">
 </instance_geometry>
 <translate>
 0 0 0</translate>
@@ -110,10 +110,10 @@ Z_UP</up_axis>
 </physics_model>
 </library_physics_models>
 <library_geometries id="libgeom">
-<geometry id="bodyset84789528.geometry.0" name="bodyset84789528_geometry.0">
+<geometry id="bodyset84265240.geometry.0" name="bodyset84265240_geometry.0">
 <mesh>
-<source id="bodyset84789528.geometry.0.positions">
-<float_array id="bodyset84789528.geometry.0.positions.float-array" count="5580">
+<source id="bodyset84265240.geometry.0.positions">
+<float_array id="bodyset84265240.geometry.0.positions.float-array" count="5580">
 4.33013 2.5 -10.0 
 5.0 0.0 -10.0 
 4.33013 -2.5 -10.0 
@@ -1976,7 +1976,7 @@ Z_UP</up_axis>
 9.2388 -3.82683 15.0 
 </float_array>
 <technique_common>
-<accessor source="#bodyset84789528.geometry.0.positions.float-array" count="1860" stride="3">
+<accessor source="#bodyset84265240.geometry.0.positions.float-array" count="1860" stride="3">
 <param name="X" type="float">
 </param>
 <param name="Y" type="float">
@@ -1986,8 +1986,8 @@ Z_UP</up_axis>
 </accessor>
 </technique_common>
 </source>
-<source id="bodyset84789528.geometry.0.normals">
-<float_array id="bodyset84789528.geometry.0.normals.float-array" count="1860">
+<source id="bodyset84265240.geometry.0.normals">
+<float_array id="bodyset84265240.geometry.0.normals.float-array" count="1860">
 0.0 0.0 -1.0 
 0.0 0.0 -1.0 
 0.0 0.0 -1.0 
@@ -2610,7 +2610,7 @@ Z_UP</up_axis>
 0.0 0.0 1.0 
 </float_array>
 <technique_common>
-<accessor source="#bodyset84789528.geometry.0.normals.float-array" count="620" stride="3">
+<accessor source="#bodyset84265240.geometry.0.normals.float-array" count="620" stride="3">
 <param name="X" type="float">
 </param>
 <param name="Y" type="float">
@@ -2620,14 +2620,14 @@ Z_UP</up_axis>
 </accessor>
 </technique_common>
 </source>
-<vertices id="bodyset84789528.geometry.0.vertices">
-<input semantic="POSITION" source="#bodyset84789528.geometry.0.positions">
+<vertices id="bodyset84265240.geometry.0.vertices">
+<input semantic="POSITION" source="#bodyset84265240.geometry.0.positions">
 </input>
 </vertices>
-<triangles count="620" material="bodyset84789528.geometry.0.material">
-<input offset="0" semantic="VERTEX" source="bodyset84789528.geometry.0.vertices">
+<triangles count="620" material="bodyset84265240.geometry.0.material">
+<input offset="0" semantic="VERTEX" source="bodyset84265240.geometry.0.vertices">
 </input>
-<input offset="1" semantic="NORMAL" source="bodyset84789528.geometry.0.normal">
+<input offset="1" semantic="NORMAL" source="bodyset84265240.geometry.0.normal">
 </input>
 <p>0 0 1 0 2 0 
 3 1 4 1 5 1 

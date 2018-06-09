@@ -417,6 +417,49 @@ class DiaboloSystem():
             self.models[-1].l2.b = self.model.l2.b
             self.optimizers.append(optimizers.RMSprop(lr=0.01))
             self.optimizers[i].setup(self.model)
+
+        # calc optimized input by ModelPredictiveControl
+        self.future_past_states = self.past_states
+        self.future_now_input = [self.now_input]
+
+        for i in range(20 / self.MPC_PREDICT_STEP):    # optimize loop  loop_num is 10 == hz is 90
+            x = Variable(np.array([self.future_past_states[-1 * self.DELTA_STEP], self.future_past_states[-2 * self.DELTA_STEP], self.future_now_input[-1]]).astype(np.float32).reshape(1,6))
+            # forward
+            for m in range(self.MPC_PREDICT_STEP):
+                self.models[m].zerograds()
+                self.models[m](x)
+            # backward
+            loop_flag = True
+            t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
+            for m in range(self.MPC_PREDICT_STEP):
+                loss = self.models[m].loss(t)
+                loss.backward()
+                # t = Variable(x.grad_var.data[0], x.grad_var.data[1])   # TODOTODOTODO
+                
+                x = Variable((x - 0.01 * x.grad_var).data)
+                now_input = [x[0][4].data, x[0][5].data]
+                # apply input restriction
+                for j in range(self.PAST_INPUT_NUM * self.INPUT_DIM):
+                    # diff input restriction
+                    if now_input[j] - self.future_now_input[-1][j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
+                        now_input[j] = np.float32(self.future_now_input[-1][j] + self.MAX_INPUT_DIFF_RESTRICTION[j])
+                        #loop_flag = False
+                    elif self.future_now_input[-1][j] - now_input[j] > self.MAX_INPUT_DIFF_RESTRICTION[j]:
+                        now_input[j] = np.float32(self.future_now_input[-1][j] - self.MAX_INPUT_DIFF_RESTRICTION[j])
+                        #loop_flag = False                    
+                    # max min input restriction
+                    if now_input[j] > self.MAX_INPUT_RESTRICTION[j]:
+                        now_input[j] = self.MAX_INPUT_RESTRICTION[j]
+                        #loop_flag = False                    
+                    elif now_input[j] < self.MIN_INPUT_RESTRICTION[j]:
+                        now_input[j] = self.MIN_INPUT_RESTRICTION[j]
+                        #loop_flag = False                    
+                  
+                x = Variable(np.array([self.future_past_states[-1][-1 * self.DELTA_STEP], self.future_past_states[-1][-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1,6))
+                if loop_flag == False:
+                    break
+            self.future_past_states.append()
+            self.future_now_input.append(now_input)
         '''
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
