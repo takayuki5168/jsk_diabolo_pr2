@@ -24,6 +24,7 @@ import chainer.links as L
 from chainer.functions.loss.mean_squared_error import mean_squared_error
 
 from matplotlib import pyplot as plt
+import seaborn as sns
 
 import rospy
 from std_msgs.msg import Float64MultiArray, Float64
@@ -516,14 +517,10 @@ class DiaboloSystem():
                 f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
                           
     def draw_heatmap(self, wbs):
-        fig, ax = plt.subplots(len(wbs), 1)
         for i in range(len(wbs)):
             wb = wbs[i]
-            h = ax[i].pcolor(wb, cmap=plt.cm.Blues, vmin=-1, vmax=1)            
-            ax[i].set_xticks(np.arange(wb.shape[1])+0.5, minor=False)
-            ax[i].set_yticks(np.arange(wb.shape[0])+0.5, minor=False)
-            ax[i].invert_yaxis()
-            ax[i].xaxis.tick_top()
+            plt.subplot(len(wbs) ,1 ,i + 1)            
+            sns.heatmap(wb, annot=True, cmap='Blues')
         plt.show()
 
 if __name__ == '__main__':
@@ -551,7 +548,7 @@ if __name__ == '__main__':
         ds.arrange_data()
         ds.make_model()
         print('[Train] start')        
-        ds.train(loop_num=1000)
+        ds.train(loop_num=500)
         ds.save_model()
     else:
         ds.load_data(LOG_FILES)
