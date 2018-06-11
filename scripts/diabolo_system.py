@@ -45,7 +45,7 @@ LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
 class MyChain(Chain):
     def __init__(self):
         super(MyChain, self).__init__(   # FIX
-            l1=L.Linear(6, 1),
+            l1=L.Linear(6, 2),
             l2=L.Linear(2)
             )
         
@@ -306,17 +306,19 @@ class DiaboloSystem():
             self.state_yaw_lpf = []
             
             rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
+            
+            #for realtime plot online training loss                            
             while True:
-                #for realtime plot
-                plot_num = min(100, len(self.online_losses) - 1)
-                losses = copy.deepcopy(self.online_losses[-plot_num:]) # prevent from not same length between x and y because of async callback
-                self.li.set_xdata(np.array([i for i in range(len(losses))]))
-                self.li.set_ydata(losses)
-                plt.xlim(0, len(losses))
-                if len(self.online_losses) > 0:
-                    plt.ylim(min(self.online_losses), max(self.online_losses[-int(plot_num / 2.):]) * 2)
-                plt.draw()
-                plt.pause(0.001)
+                if self.online_training == True:
+                    plot_num = min(100, len(self.online_losses) - 1)
+                    losses = copy.deepcopy(self.online_losses[-plot_num:]) # prevent from not same length between x and y because of async callback
+                    self.li.set_xdata(np.array([i for i in range(len(losses))]))
+                    self.li.set_ydata(losses)
+                    plt.xlim(0, len(losses))
+                    if len(self.online_losses) > 0:
+                        plt.ylim(min(self.online_losses), max(self.online_losses[-int(plot_num / 2.):]) * 2)
+                    plt.draw()
+                    plt.pause(0.001)
                 
             # rospy.spin()
             # callback_for_state is working background
@@ -393,6 +395,7 @@ class DiaboloSystem():
                 
             train_end_time = time.time()
             print('online training : {}[s]   Is this lower than 0.033?'.format(train_end_time - train_start_time))
+            # TODOTODOTODO print error of timeout
     
     def publish_input(self):
         msg = Float64MultiArray()
