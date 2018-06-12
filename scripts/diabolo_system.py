@@ -38,7 +38,7 @@ LOG_FILES = [#'../log/log-by-logger/log-by-loggerpy0.log',
              #'../log/log-by-logger/log-by-loggerpy6.log',
              '../log/log-by-logger/log-by-loggerpy1_0.log',
              '../log/log-by-logger/log-by-loggerpy1_1.log',
-             '../log/log-by-logger/log-by-loggerpy1_4.log',        
+             '../log/log-by-logger/log-by-loggerpy1_4.log',
              '../log/log-by-logger/log-by-loggerpy1_2.log',
              '../log/log-by-logger/log-by-loggerpy1_3.log',
              '../log/log-by-logger/log-by-loggerpy1_5.log']
@@ -66,11 +66,9 @@ class MyChain(Chain):
     
     # loss for optimize_input()
     def loss_for_optimize_input(self, t):
-        #return F.mean_squared_error(self.res, t)
+        return F.mean_squared_error(self.res, t)
         
-        #print F.mean_squared_error(self.res, t)
-        #print (((self.res - t)[0][0]**2).data + ((self.res - t)[0][1]**2)) / 2
-        return (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 100) / 2
+        #return (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 100) / 2
     
         #return F.linear(self.res - t, np.array([[1, 1]]).astype(np.float32))
 
@@ -85,7 +83,7 @@ class DiaboloSystem():
         self.STATE_DIM = 2
         self.INPUT_DIM = 2
         
-        self.DELTA_STEP = 5   # FIX
+        self.DELTA_STEP = 3   # FIX
 
         self.lpf_average_num = 10        
 
