@@ -31,10 +31,11 @@
 ;;    toss
 ;;    use local variable
 
+(ros::load-ros-manifest "control_msgs")
+
 (defun init ()
   (ros::load-ros-manifest "roseus")
   (ros::roseus "juggle-system")
-  (ros::load-ros-manifest "control_msgs")
 
   ;;
   ;; init variables

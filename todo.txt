@@ -1,7 +1,4 @@
 # CHECK
-* 6-2-2 is best, but convergence of input arm is not 0.7, but max or min
-  use 6-1-2 or 6-2-2
-  
 * is it ok to while spinOnce(acutually not use spinOnce), not spin in diabolo_system
     when spin is called
 
@@ -15,9 +12,10 @@
 (* test whether online training work well)
   is it best that delta is 0.01?
 
-*improve calc of pitch, yaw
+* improve calc of pitch, yaw
 
 * predict some steps when realtime mpc
+
 
 * subscribe input in diabolo_system realtime feedback
 * use clear_grads()
