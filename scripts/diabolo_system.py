@@ -70,7 +70,7 @@ class MyChain(Chain):
         
         #print F.mean_squared_error(self.res, t)
         #print (((self.res - t)[0][0]**2).data + ((self.res - t)[0][1]**2)) / 2
-        return (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 10000000000000) / 2
+        return (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 100) / 2
     
         #return F.linear(self.res - t, np.array([[1, 1]]).astype(np.float32))
 
