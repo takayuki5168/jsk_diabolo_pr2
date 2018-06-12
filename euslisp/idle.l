@@ -23,8 +23,10 @@
   (send *default-right-diff-cube* :rotate 0.2 :x)
   (send *default-left-diff-cube* :rotate -0.2 :x)  
   
-  (send *pr2* :rarm :inverse-kinematics *default-right-diff-cube*)
-  (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
+  ;;(send *pr2* :rarm :inverse-kinematics *default-right-diff-cube*)
+  ;;(send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
+  (send *pr2* :rarm :inverse-kinematics *default-right-diff-cube* :stop 3 :revert-if-fail nil)
+  (send *pr2* :larm :inverse-kinematics *default-left-diff-cube* :stop 3 :revert-if-fail nil)
   )
 
 (defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t) &key (teach nil) (diabolo-system nil) (simulate nil))
@@ -80,8 +82,8 @@
 	 (if (eq diabolo-system t) ;; when diabolo-system
 	     (progn
 	       (setq *idle-control-x-diff* (- (* *diabolo-system-input-arm* 1000) 700))
-	       (print (list "[DiaboloSystem] input arm" *diabolo-system-input-arm*))
-	       (print *idle-control-x-diff*)
+	       ;;(print (list "[DiaboloSystem] input arm" *diabolo-system-input-arm*))
+	       ;;(print *idle-control-x-diff*)
 	       )
 	   (progn
 	     (setq *idle-control-x-diff* (* *idle-diabolo-pitch* 10)) ;; when controller TODO params

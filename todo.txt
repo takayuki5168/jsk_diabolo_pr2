@@ -1,3 +1,10 @@
+# MEMO
+卒論タイトル
+　予測
+　　飛ばす系も入れる？
+　ディアボロの動作を一般化した名前を入れる
+　　押しポイントが欲しい、動作を押しポイントにすると分かりやすい
+
 # CHECK
 * 6-2-2 is best, but convergence of input arm is not 0.7, but max or min
   use 6-1-2 or 6-2-2
@@ -5,15 +12,19 @@
 * is it ok to while spinOnce(acutually not use spinOnce), not spin in diabolo_system
     when spin is called
 
-# TODO
-* use clear_grads()
+* check online training
 
-* test whether online training work well
+# TODO
+* toss with small light diabolo
+    feedback with vision
+    not set last velocity 0
+
+(* test whether online training work well)
 
 * predict some steps when realtime mpc
 
-* subscribe input in diabolo_system realtime feedback with simulation
-
+* subscribe input in diabolo_system realtime feedback
+* use clear_grads()
 
 
 consider optimization of controller

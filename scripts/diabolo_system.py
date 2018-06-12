@@ -29,17 +29,19 @@ import seaborn as sns
 import rospy
 from std_msgs.msg import Float64MultiArray, Float64
 
-LOG_FILES = ['../log/log-by-logger/log-by-loggerpy0.log',
-             '../log/log-by-logger/log-by-loggerpy1.log',
-             '../log/log-by-logger/log-by-loggerpy2.log',
-             '../log/log-by-logger/log-by-loggerpy3.log',
-             '../log/log-by-logger/log-by-loggerpy4.log',
-             '../log/log-by-logger/log-by-loggerpy5.log',
-             '../log/log-by-logger/log-by-loggerpy6.log',
+LOG_FILES = [#'../log/log-by-logger/log-by-loggerpy0.log',
+             #'../log/log-by-logger/log-by-loggerpy1.log',
+             #'../log/log-by-logger/log-by-loggerpy2.log',
+             #'../log/log-by-logger/log-by-loggerpy3.log',
+             #'../log/log-by-logger/log-by-loggerpy4.log',
+             #'../log/log-by-logger/log-by-loggerpy5.log',
+             #'../log/log-by-logger/log-by-loggerpy6.log',
              '../log/log-by-logger/log-by-loggerpy1_0.log',
              '../log/log-by-logger/log-by-loggerpy1_1.log',
+             '../log/log-by-logger/log-by-loggerpy1_4.log',    
              '../log/log-by-logger/log-by-loggerpy1_2.log',
-             '../log/log-by-logger/log-by-loggerpy1_3.log']
+             '../log/log-by-logger/log-by-loggerpy1_3.log',
+             '../log/log-by-logger/log-by-loggerpy1_5.log']
 
 
 class MyChain(Chain):
@@ -214,14 +216,20 @@ class DiaboloSystem():
     # load trained NeuralNetwork model
     def load_model(self, log_file='../log/diabolo_system/mymodel.h5'):
         serializers.load_hdf5(log_file, self.model)
+        # plot weight heatmap
+        wb1 = np.c_[self.model.l1.W.data, self.model.l1.b.data]
+        wb2 = np.c_[self.model.l2.W.data, self.model.l2.b.data]
+        wbs = [wb1, wb2]
+        self.draw_heatmap(wbs)
+
 
     # save trained NeuralNetwork model
     def save_model(self):
         serializers.save_hdf5('../log/diabolo_system/mymodel.h5', self.model)
         
     def train(self, loop_num=1000):
-        losses =[]
         # train loop_num
+        losses =[]        
         for i in range(loop_num):
             self.percentage(i, loop_num)
             x, y = self.get_batch_train(self.batch_size)
@@ -260,7 +268,7 @@ class DiaboloSystem():
         self.model.zerograds()
         self.model(x_)
         loss = self.model.loss(t_)
-        loss.backward()
+        loss.backward() # this should be comment out
         #self.optimizer.update()
         
         with open('../log/diabolo_system/predict.log', 'w') as f:
@@ -376,7 +384,7 @@ class DiaboloSystem():
                 Y.append(y)
             
             # train   TODO if this trainig can calculated in 20-30Hz
-            loop_num = 3
+            loop_num = 1
             losses = 0
             for i in range(loop_num):
                 x_ = Variable(np.array(X).astype(np.float32).reshape(batch_num, 6))
@@ -395,7 +403,8 @@ class DiaboloSystem():
                 
             train_end_time = time.time()
             print('online training : {}[s]   Is this lower than 0.033?'.format(train_end_time - train_start_time))
-            # TODOTODOTODO print error of timeout
+            if 0.33 < train_end_time - train_start_time:
+                print('[Error] time out of online training')
     
     def publish_input(self):
         msg = Float64MultiArray()
