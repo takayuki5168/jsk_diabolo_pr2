@@ -94,7 +94,9 @@ class DiaboloSystem():
         
         self.DELTA_STEP = 3   # FIX
 
-        self.lpf_average_num = 10        
+        self.lpf_average_num = 10
+
+        self.idle_flag = 0
 
         # HyperParameters for NeuralNetwork
         self.INPUT_NN_DIM = self.STATE_DIM * self.PAST_STATE_NUM + self.INPUT_DIM * self.PAST_INPUT_NUM
@@ -316,7 +318,11 @@ class DiaboloSystem():
                 plt.xlabel("time[step]")
                 plt.ylabel("loss")
                 
-                self.online_losses = []                              
+                self.online_losses = []
+
+                # make optimizer for online training
+                self.optimizer_online = optimizers.RMSprop(lr=0.0001)
+                self.optimizer_online.setup(self.model)
             
             self.past_states = []
             self.past_inputs = []
@@ -326,6 +332,7 @@ class DiaboloSystem():
             self.state_pitch_lpf = []
             self.state_yaw_lpf = []
             
+            rospy.Subscriber("idle", Float64, self.callback_for_idle, queue_size=1)
             rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
 
             r = rospy.Rate(30)
@@ -349,7 +356,10 @@ class DiaboloSystem():
             #   publish_input
             #   arrange data for train
             #   online train
-            
+
+    def callback_for_idle(self, msg):
+        self.idle_flag = msg.data
+        
     def callback_for_state(self, msg):
         # assign past_states
         self.past_states.append([msg.data[0], msg.data[1]])
@@ -379,6 +389,8 @@ class DiaboloSystem():
         # online training
         batch_num = 10
         if self.online_training == True:
+            if self.idle_flag < 1:
+                return
             train_start_time = time.time()
             # arrange data for train
             if len(self.input_arm_lpf) < (max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP + batch_num:
@@ -410,11 +422,11 @@ class DiaboloSystem():
                 loss = self.model.loss(t_)
     
                 loss.backward()
-                self.optimizer.update()
+                self.optimizer_online.update()
 
                 losses += loss.data
     
-            self.online_losses.append(losses / loop_num)
+            self.online_losses.append(losses / loop_num / batch_num)
                 
             train_end_time = time.time()
             print('online training : {}[s]   Is this lower than 0.033?'.format(train_end_time - train_start_time))
@@ -444,7 +456,7 @@ class DiaboloSystem():
             self.models[-1].l2.W = self.model.l2.W
             self.models[-1].l2.b = self.model.l2.b
             self.optimizers.append(optimizers.RMSprop(lr=0.01))
-            self.optimizers[i].setup(self.model)
+            self.optimizers[-1].setup(self.model)
 
         # calc optimized input by ModelPredictiveControl
         self.future_past_states = self.past_states

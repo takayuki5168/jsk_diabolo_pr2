@@ -51,12 +51,16 @@
   (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
   (setq *right-z-diff* 150)
   (send *ri* :angle-vector (idle-control 0 simulate) 1500) ;;800)
-  (send *pr2* :head-neck-p :joint-angle 50)  
+  (send *pr2* :head-neck-p :joint-angle 50)
+
+  (setq *idle-cnt* 0)  
 
   (if (eq simulate t)
       (setq *tfb* (instance ros::transform-broadcaster :init))
     )
   (do-until-key
+   (setq *idle-cnt* (+ *idle-cnt* 1))
+   
    ;; subscribe
    (ros::spin-once "idle")
    (if (eq diabolo-system t)
@@ -110,7 +114,9 @@
        )
      (setq *idle-ec* (idle-control *idle-control-x-diff* simulate))     
      ;;(bench (send *ri* :angle-vector *idle-ec* 1500)) ;;800)
-     (bench (progn (publish-left-angle-vector 1500)  (publish-right-angle-vector 1500)))
+     (if (eq (mod *idle-cnt* 30) 0)
+	 (bench (progn (publish-left-angle-vector 1500)  (publish-right-angle-vector 1500)))       
+       )
      )
 
    (progn ;; yaw
@@ -126,7 +132,7 @@
 	       )
 	   )
 	 )
-       )    
+       )  
      ;; 外れ値除去
      (if (> *idle-diabolo-yaw* 60)
 	 (setq *idle-diabolo-yaw* 0))
@@ -153,8 +159,12 @@
 	       )
 	   (progn
 	     (setq *diff-theta* *idle-diabolo-yaw-rad*)
-	     (setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 1000)) ;;10000))
-	     (send *ac* :send-goal *goal*)
+	     (bench
+	      (progn
+		(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 500)) ;;10000))
+		(send *ac* :send-goal *goal*)
+		)
+	      )
 	     )
 	   )
        )
