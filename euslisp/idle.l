@@ -30,6 +30,7 @@
   )
 
 (defun idle (&optional (roll-valid t) (pitch-valid t) (yaw-valid t) &key (teach nil) (diabolo-system nil) (simulate nil))
+  (send *ri* :start-grasp)
   (if (eq roll-valid t)
       (progn
 	(send *ri* :angle-vector *roll-1-pos* 5000)
@@ -120,7 +121,7 @@
        (progn
 	 (if (eq diabolo-system t) ;; when diabolo system
 	     (progn
-	       (setq *idle-diabolo-yaw* (* (/ (* *diabolo-system-input-base* 180) 3.14) 1)) ;;TODOTODO   magic number 100
+	       ;;(setq *idle-diabolo-yaw* (* (/ (* *diabolo-system-input-base* 180) 3.14) 1)) ;;TODOTODO   magic number 100
 	       )
 	   )
 	 )

@@ -38,10 +38,13 @@ LOG_FILES = [#'../log/log-by-logger/log-by-loggerpy0.log',
              #'../log/log-by-logger/log-by-loggerpy6.log',
              '../log/log-by-logger/log-by-loggerpy1_0.log',
              '../log/log-by-logger/log-by-loggerpy1_1.log',
-             '../log/log-by-logger/log-by-loggerpy1_4.log',
              '../log/log-by-logger/log-by-loggerpy1_2.log',
-             '../log/log-by-logger/log-by-loggerpy1_3.log',
-             '../log/log-by-logger/log-by-loggerpy1_5.log']
+             '../log/log-by-logger/log-by-loggerpy1_4.log',
+             '../log/log-by-logger/log-by-loggerpy1_5.log',
+             '../log/log-by-logger/log-by-loggerpy1_7.log',    
+             '../log/log-by-logger/log-by-loggerpy1_6.log',
+             '../log/log-by-logger/log-by-loggerpy1_3.log']
+
 
 
 class MyChain(Chain):
@@ -317,9 +320,11 @@ class DiaboloSystem():
             self.state_yaw_lpf = []
             
             rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
-            
+
+            r = rospy.Rate(30)
             #for realtime plot online training loss                            
             while True:
+                r.sleep()
                 if self.online_training == True:
                     plot_num = min(100, len(self.online_losses) - 1)
                     losses = copy.deepcopy(self.online_losses[-plot_num:]) # prevent from not same length between x and y because of async callback
@@ -524,7 +529,7 @@ class DiaboloSystem():
 
     def simulate_offline(self, simulate_loop_num=1000):
         #init_state = [0., 0.]
-        init_state = [0., -40.]        
+        init_state = [40., 0.]        
         
         self.past_states = [init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]
         with open('../log/diabolo_system/simulate.log', 'w') as f:
