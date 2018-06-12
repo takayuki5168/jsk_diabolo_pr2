@@ -34,6 +34,7 @@
 (defun init ()
   (ros::load-ros-manifest "roseus")
   (ros::roseus "juggle-system")
+  (ros::load-ros-manifest "control_msgs")  
 
   ;;
   ;; init variables
@@ -96,7 +97,7 @@
   (ros::advertise "idle" std_msgs::float64 1)
 
   ;; publish larm
-  ;;(ros::advertise "/l_arm_controller/follow_joint_trajectory/goal" control_msgs::FollowJointTrajectoryActionGoal 1)  
+  (ros::advertise "/l_arm_controller/follow_joint_trajectory/goal" control_msgs::FollowJointTrajectoryActionGoal 1)  
 
   ;;
   ;; init PR2

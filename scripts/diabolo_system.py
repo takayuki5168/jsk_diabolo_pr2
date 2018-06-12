@@ -70,8 +70,14 @@ class MyChain(Chain):
     # loss for optimize_input()
     def loss_for_optimize_input(self, t):
         return F.mean_squared_error(self.res, t)
-        
-        #return (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 100) / 2
+        #print self.res
+        #print self.res * Variable(np.array([[1, 1]]).astype(np.float32))
+        #print Variable(np.array([[self.res[0][0].data, self.res[0][1].data]]).astype(np.float32))
+        # return F.mean_squared_error(self.res * Variable(np.array([[1, 1]]).astype(np.float32)),  t)
+        # print F.mean_squared_error(self.res, t)
+        # print (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 1) / 2
+       
+        # return (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 1) / 2
     
         #return F.linear(self.res - t, np.array([[1, 1]]).astype(np.float32))
 
@@ -108,7 +114,8 @@ class DiaboloSystem():
         self.now_input = [0.7, 0]
 
         # max min restriction for input
-        self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.01]        
+        # self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.01]
+        self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 10] #TODOTODOTODO
         self.MAX_INPUT_RESTRICTION = [0.85, 0.34]   # TODO
         self.MIN_INPUT_RESTRICTION = [0.60, -0.34]   # TODO        
 
@@ -489,7 +496,7 @@ class DiaboloSystem():
             self.model.zerograds()            
             self.model(x)
             # loss = self.model.loss(t)
-            loss = self.model.loss_for_optimize_input(t)            
+            loss = self.model.loss_for_optimize_input(t)
             loss.backward()
             
             x = Variable((x - 0.01 * x.grad_var).data)
@@ -529,7 +536,7 @@ class DiaboloSystem():
 
     def simulate_offline(self, simulate_loop_num=1000):
         #init_state = [0., 0.]
-        init_state = [40., 0.]        
+        init_state = [0., -40.]        
         
         self.past_states = [init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]
         with open('../log/diabolo_system/simulate.log', 'w') as f:
