@@ -1,10 +1,3 @@
-# MEMO
-卒論タイトル
-　予測
-　　飛ばす系も入れる？
-　ディアボロの動作を一般化した名前を入れる
-　　押しポイントが欲しい、動作を押しポイントにすると分かりやすい
-
 # CHECK
 * 6-2-2 is best, but convergence of input arm is not 0.7, but max or min
   use 6-1-2 or 6-2-2
@@ -20,11 +13,15 @@
     not set last velocity 0
 
 (* test whether online training work well)
+  is it best that delta is 0.01?
+
+*improve calc of pitch, yaw
 
 * predict some steps when realtime mpc
 
 * subscribe input in diabolo_system realtime feedback
 * use clear_grads()
+
 
 
 consider optimization of controller

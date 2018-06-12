@@ -13,7 +13,7 @@
 # not use zerograds, but cleargrads
 
 
-import random, time, sys, signal, copy
+import random, time, sys, signal, copy, math
 import numpy as np
 import argparse
 
@@ -38,7 +38,7 @@ LOG_FILES = [#'../log/log-by-logger/log-by-loggerpy0.log',
              #'../log/log-by-logger/log-by-loggerpy6.log',
              '../log/log-by-logger/log-by-loggerpy1_0.log',
              '../log/log-by-logger/log-by-loggerpy1_1.log',
-             '../log/log-by-logger/log-by-loggerpy1_4.log',    
+             '../log/log-by-logger/log-by-loggerpy1_4.log',        
              '../log/log-by-logger/log-by-loggerpy1_2.log',
              '../log/log-by-logger/log-by-loggerpy1_3.log',
              '../log/log-by-logger/log-by-loggerpy1_5.log']
@@ -64,10 +64,15 @@ class MyChain(Chain):
     def loss(self, t):
         return F.mean_squared_error(self.res, t)
     
-    ''' loss for optimize_input()
-    def loss(self, t):
-        return F.mean_squared_error(self.res, t)
-    '''
+    # loss for optimize_input()
+    def loss_for_optimize_input(self, t):
+        #return F.mean_squared_error(self.res, t)
+        
+        #print F.mean_squared_error(self.res, t)
+        #print (((self.res - t)[0][0]**2).data + ((self.res - t)[0][1]**2)) / 2
+        return (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 10000000000000) / 2
+    
+        #return F.linear(self.res - t, np.array([[1, 1]]).astype(np.float32))
 
 class DiaboloSystem():
     def __init__(self):
@@ -478,8 +483,10 @@ class DiaboloSystem():
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
         loop_flag = True
         for i in range(20):    # optimize loop  loop_num is 10 == hz is 90
+            self.model.zerograds()            
             self.model(x)
-            loss = self.model.loss(t)
+            # loss = self.model.loss(t)
+            loss = self.model.loss_for_optimize_input(t)            
             loss.backward()
             
             x = Variable((x - 0.01 * x.grad_var).data)
@@ -519,7 +526,7 @@ class DiaboloSystem():
 
     def simulate_offline(self, simulate_loop_num=1000):
         #init_state = [0., 0.]
-        init_state = [40., 0.]        
+        init_state = [0., -40.]        
         
         self.past_states = [init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]
         with open('../log/diabolo_system/simulate.log', 'w') as f:
