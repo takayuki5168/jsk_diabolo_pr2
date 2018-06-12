@@ -34,7 +34,7 @@
 (defun init ()
   (ros::load-ros-manifest "roseus")
   (ros::roseus "juggle-system")
-  (ros::load-ros-manifest "control_msgs")  
+  (ros::load-ros-manifest "control_msgs")
 
   ;;
   ;; init variables
@@ -43,7 +43,7 @@
   (setq *idle-diabolo-yaw* 0)
   
   (setq *toss-diabolo-x* 0)
-  (setq *toss-diabolo-x-predict* 0)  
+  (setq *toss-diabolo-x-predict* 0)
   
   (setq *diabolo-system-input-arm* 0)
   (setq *diabolo-system-input-base* 0)
@@ -52,11 +52,11 @@
   ;; Subscriber
   ;;
   ;; subscribe idle diabolo state
-  (ros::create-nodehandle "idle")  
+  (ros::create-nodehandle "idle")
   (ros::subscribe "calc_idle_diabolo_state/diabolo_state" std_msgs::Float64MultiArray
   		  #'(lambda (msg) (progn
   				    (setq *idle-diabolo-pitch* (elt (send msg :data) 0))
-  				    (setq *idle-diabolo-yaw* (elt (send msg :data) 1))				    
+  				    (setq *idle-diabolo-yaw* (elt (send msg :data) 1))
   				    ))
 		  :groupname "idle")
   
@@ -69,24 +69,24 @@
 		  :groupname "toss")
   
   ;; subscribe joy
-  (ros::create-nodehandle "joy")  
+  (ros::create-nodehandle "joy")
   (ros::subscribe "joy" sensor_msgs::Joy
   		  #'(lambda (msg) (setq *joy* (send msg :axes)))
 		  :groupname "joy")
 
   ;; subscribe DiaboloSystem
-  (ros::create-nodehandle "diabolo-system")  
+  (ros::create-nodehandle "diabolo-system")
   (ros::subscribe "diabolo_system/diabolo_input" std_msgs::Float64MultiArray
   		  #'(lambda (msg) (progn
 				    (setq *diabolo-system-input-arm* (elt (send msg :data) 0))
-				    (setq *diabolo-system-input-base* (elt (send msg :data) 1))				    
+				    (setq *diabolo-system-input-base* (elt (send msg :data) 1))
 				    ))
 		  :groupname "diabolo-system")
-  (ros::create-nodehandle "diabolo-system-simulate")    
+  (ros::create-nodehandle "diabolo-system-simulate")
   (ros::subscribe "diabolo_system/diabolo_state" std_msgs::Float64MultiArray
   		  #'(lambda (msg) (progn
 				    (setq *idle-diabolo-pitch* (elt (send msg :data) 0))
-				    (setq *idle-diabolo-yaw* (elt (send msg :data) 1))				    
+				    (setq *idle-diabolo-yaw* (elt (send msg :data) 1))
 				    ))
 		  :groupname "diabolo-system-simulate")
 
@@ -114,9 +114,10 @@
   (solve-ik)
   
   (objects (list *pr2*))
-
+  
+  (load "package://jsk_diabolo_pr2/euslisp/utils.l")
   (load "package://jsk_diabolo_pr2/euslisp/idle.l")
-  (load "package://jsk_diabolo_pr2/euslisp/toss.l")  
+  (load "package://jsk_diabolo_pr2/euslisp/toss.l")
   )
 
 (defun solve-ik ()
