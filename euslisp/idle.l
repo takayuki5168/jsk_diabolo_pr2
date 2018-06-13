@@ -114,7 +114,7 @@
        )
      (setq *idle-ec* (idle-control *idle-control-x-diff* simulate))     
      ;;(bench (send *ri* :angle-vector *idle-ec* 1500)) ;;800)
-     (if (eq (mod *idle-cnt* 30) 0)
+     (if (eq (mod *idle-cnt* 5) 0)
 	 (bench (progn (publish-left-angle-vector 1500)  (publish-right-angle-vector 1500)))       
        )
      )
@@ -161,7 +161,7 @@
 	     (setq *diff-theta* *idle-diabolo-yaw-rad*)
 	     (bench
 	      (progn
-		(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 500)) ;;10000))
+		(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))
 		(send *ac* :send-goal *goal*)
 		)
 	      )

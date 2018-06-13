@@ -460,19 +460,21 @@ class DiaboloSystem():
 
         # calc optimized input by ModelPredictiveControl
         self.future_past_states = self.past_states
-        self.future_now_input = [self.now_input]
+        self.future_now_input = [self.now_input for i in range(self.MPC_PREDICT_STEP)]
 
         for i in range(20 / self.MPC_PREDICT_STEP):    # optimize loop  loop_num is 10 == hz is 90
-            x = Variable(np.array([self.future_past_states[-1 * self.DELTA_STEP], self.future_past_states[-2 * self.DELTA_STEP], self.future_now_input[-1]]).astype(np.float32).reshape(1,6))
+            x = Variable(np.array([self.future_past_states[-1 * self.DELTA_STEP], self.future_past_states[-2 * self.DELTA_STEP], self.future_now_input[0]]).astype(np.float32).reshape(1,6))
             # forward
             for m in range(self.MPC_PREDICT_STEP):
                 self.models[m].zerograds()
                 self.models[m](x)
+                x = Variable(np.array([self.models[m].res, self.future_past_states[-1 * self.DELTA_STEP], self.future_now_input[m + 1]]).astype(np.float32).reshape(1,6))
             # backward
             loop_flag = True
             t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
             for m in range(self.MPC_PREDICT_STEP):
-                loss = self.models[m].loss(t)
+                rev_m = self.MPC_PREDICT_STEP - m - 1
+                loss = self.models[rev_m].loss(t)
                 loss.backward()
                 # t = Variable(x.grad_var.data[0], x.grad_var.data[1])   # TODOTODOTODO
                 
@@ -494,12 +496,15 @@ class DiaboloSystem():
                     elif now_input[j] < self.MIN_INPUT_RESTRICTION[j]:
                         now_input[j] = self.MIN_INPUT_RESTRICTION[j]
                         #loop_flag = False                    
-                  
-                x = Variable(np.array([self.future_past_states[-1][-1 * self.DELTA_STEP], self.future_past_states[-1][-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1,6))
+
+                print len(self.future_past_states)
+                x = Variable(np.array([self.future_past_states[-1 * self.DELTA_STEP], self.future_past_states[-2 * self.DELTA_STEP], now_input]).astype(np.float32).reshape(1,6))
                 if loop_flag == False:
                     break
             self.future_past_states.append()
             self.future_now_input.append(now_input)
+
+        return
         '''
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
