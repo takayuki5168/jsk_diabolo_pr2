@@ -5,17 +5,18 @@
 * check online training
 
 # TODO
-* toss with small light diabolo
-    feedback with vision
-    not set last velocity 0
-
+* toss with not set last velocity 0
+    
 (* test whether online training work well)
   is it best that delta is 0.01?
 
-* improve calc of pitch, yaw
-
 * predict some steps when realtime mpc
 
+* in get_test(), get data from designated log file
+    then see loss of each all log files one by one
+
+
+* improve calc of pitch, yaw
 
 * subscribe input in diabolo_system realtime feedback
 * use clear_grads()

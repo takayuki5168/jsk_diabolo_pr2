@@ -264,7 +264,9 @@ class DiaboloSystem():
         self.draw_heatmap(self.model)
             
     def test(self):
-        x, y = self.get_test()        
+        x, y = self.get_test()
+        #x_ = Variable(np.array([x[1990]]).astype(np.float32).reshape(1,6))
+        #t_ = Variable(np.array([y[1990]]).astype(np.float32).reshape(1,2))
         x_ = Variable(x.astype(np.float32).reshape(len(x),6))
         t_ = Variable(y.astype(np.float32).reshape(len(y),2))
         
@@ -337,13 +339,12 @@ class DiaboloSystem():
                         plt.ylim(min(self.online_losses), max(self.online_losses[-int(plot_num / 2.):]) * 2)
                     plt.draw()
                     plt.pause(0.001)
-                
             # rospy.spin()
             # callback_for_state is working background
             #   optimize_input
             #   publish_input
-            #   arrange data for train
-            #   online train
+            #   subscribe state
+            #   arrange subscribed data for train
 
     def callback_for_idle(self, msg):
         self.idle_flag = msg.data
