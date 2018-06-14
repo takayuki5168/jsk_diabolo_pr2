@@ -45,8 +45,6 @@ LOG_FILES = [#'../log/log-by-logger/log-by-loggerpy0.log',
              '../log/log-by-logger/log-by-loggerpy1_6.log',
              '../log/log-by-logger/log-by-loggerpy1_3.log']
 
-
-
 class MyChain(Chain):
     def __init__(self):
         super(MyChain, self).__init__(   # FIX
@@ -60,19 +58,17 @@ class MyChain(Chain):
         o = self.l2(h)
         return o
 
-    # forward ans save output
+    # forward and save output
     def __call__(self, x):
         self.res = self.forward(x)
 
+    # loss func for learning
     def loss(self, t):
         return F.mean_squared_error(self.res, t)
     
-    # loss for optimize_input()
+    # loss for optimize input
     def loss_for_optimize_input(self, t):
         return F.mean_squared_error(self.res, t)
-        #print self.res
-        #print self.res * Variable(np.array([[1, 1]]).astype(np.float32))
-        #print Variable(np.array([[self.res[0][0].data, self.res[0][1].data]]).astype(np.float32))
         # return F.mean_squared_error(self.res * Variable(np.array([[1, 1]]).astype(np.float32)),  t)
         # print F.mean_squared_error(self.res, t)
         # print (((self.res - t)[0][0]**2).data * 1 + ((self.res - t)[0][1]**2) * 1) / 2
@@ -94,21 +90,19 @@ class DiaboloSystem():
         
         self.DELTA_STEP = 3   # FIX
 
-        self.lpf_average_num = 10
-
-        self.idle_flag = 0
-
         # HyperParameters for NeuralNetwork
         self.INPUT_NN_DIM = self.STATE_DIM * self.PAST_STATE_NUM + self.INPUT_DIM * self.PAST_INPUT_NUM
         self.OUTPUT_NN_DIM = self.STATE_DIM
-        self.train_test_ratio = 0.8   # FIX
-        self.batch_size = 1000   # FIX
+        self.TRAIN_TEST_RATIO = 0.8   # FIX
+        self.BATCH_SIZE = 1000   # FIX
 
         # reference of state
         self.state_ref = [0., 0.]   # FIX
 
         self.MPC_PREDICT_STEP = 10;
         self.online_training = False
+        self.LPF_AVERAGE_NUM = 10
+        self.idle_flag = 0
 
         # real data
         self.past_states = []
@@ -117,7 +111,7 @@ class DiaboloSystem():
 
         # max min restriction for input
         # self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.01]
-        self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 10] #TODOTODOTODO
+        self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.05] #TODOTODOTODO
         self.MAX_INPUT_RESTRICTION = [0.85, 0.34]   # TODO
         self.MIN_INPUT_RESTRICTION = [0.60, -0.34]   # TODO        
 
@@ -158,20 +152,20 @@ class DiaboloSystem():
                     self.state_pitch.append(float(val[2]))
                     self.state_yaw.append(float(val[3][:-1]))
 
-                    if cnt > self.lpf_average_num:
+                    if cnt > self.LPF_AVERAGE_NUM:
                         a = 0
                         b = 0
                         p = 0
                         y = 0
-                        for i in range(self.lpf_average_num):
+                        for i in range(self.LPF_AVERAGE_NUM):
                             a += self.input_arm[-i]
                             b += self.input_base[-i]
                             p += self.state_pitch[-i]
                             y += self.state_yaw[-i]
-                        self.input_arm_lpf.append(a / self.lpf_average_num)
-                        self.input_base_lpf.append(b / self.lpf_average_num)
-                        self.state_pitch_lpf.append(p / self.lpf_average_num)
-                        self.state_yaw_lpf.append(y / self.lpf_average_num)
+                        self.input_arm_lpf.append(a / self.LPF_AVERAGE_NUM)
+                        self.input_base_lpf.append(b / self.LPF_AVERAGE_NUM)
+                        self.state_pitch_lpf.append(p / self.LPF_AVERAGE_NUM)
+                        self.state_yaw_lpf.append(y / self.LPF_AVERAGE_NUM)
 
     # arrange data for NeuralNetwork
     def arrange_data(self):
@@ -214,15 +208,15 @@ class DiaboloSystem():
         x = []
         y = []
         for i in range(n):
-            r = (int(random.random() * 10 * len(self.X) * self.train_test_ratio) % int(len(self.X) * self.train_test_ratio))
+            r = (int(random.random() * 10 * len(self.X) * self.TRAIN_TEST_RATIO) % int(len(self.X) * self.TRAIN_TEST_RATIO))
             x.append(self.X[r])
-            y.append(self.Y[r])        
+            y.append(self.Y[r])
         return np.array(x), np.array(y)
     
     def get_test(self):
         x = []
         y = []
-        s = int(len(self.X) * self.train_test_ratio)
+        s = int(len(self.X) * self.TRAIN_TEST_RATIO)
         for i in range(len(self.X) - s):
             x.append(self.X[s + i])
             y.append(self.Y[s + i])
@@ -231,12 +225,9 @@ class DiaboloSystem():
     # load trained NeuralNetwork model
     def load_model(self, log_file='../log/diabolo_system/mymodel.h5'):
         serializers.load_hdf5(log_file, self.model)
+        
         # plot weight heatmap
-        wb1 = np.c_[self.model.l1.W.data, self.model.l1.b.data]
-        wb2 = np.c_[self.model.l2.W.data, self.model.l2.b.data]
-        wbs = [wb1, wb2]
-        self.draw_heatmap(wbs)
-
+        self.draw_heatmap(self.model)
 
     # save trained NeuralNetwork model
     def save_model(self):
@@ -247,10 +238,10 @@ class DiaboloSystem():
         losses =[]        
         for i in range(loop_num):
             self.percentage(i, loop_num)
-            x, y = self.get_batch_train(self.batch_size)
+            x, y = self.get_batch_train(self.BATCH_SIZE)
         
-            x_ = Variable(x.astype(np.float32).reshape(self.batch_size, 6))
-            t_ = Variable(y.astype(np.float32).reshape(self.batch_size, 2))
+            x_ = Variable(x.astype(np.float32).reshape(self.BATCH_SIZE, 6))
+            t_ = Variable(y.astype(np.float32).reshape(self.BATCH_SIZE, 2))
 
             self.model.zerograds()
             self.model(x_)
@@ -270,10 +261,7 @@ class DiaboloSystem():
         plt.show()
 
         # plot weight heatmap
-        wb1 = np.c_[self.model.l1.W.data, self.model.l1.b.data]
-        wb2 = np.c_[self.model.l2.W.data, self.model.l2.b.data]
-        wbs = [wb1, wb2]
-        self.draw_heatmap(wbs)
+        self.draw_heatmap(self.model)
             
     def test(self):
         x, y = self.get_test()        
@@ -283,8 +271,8 @@ class DiaboloSystem():
         self.model.zerograds()
         self.model(x_)
         loss = self.model.loss(t_)
-        loss.backward() # this should be comment out
-        #self.optimizer.update()
+        # loss.backward() # this should be comment out
+        # self.optimizer.update()
         
         with open('../log/diabolo_system/predict.log', 'w') as f:
             for i in range(len(x_)):
@@ -365,20 +353,20 @@ class DiaboloSystem():
         self.past_states.append([msg.data[0], msg.data[1]])
 
         # assign lpf state and input
-        if len(self.past_states) > self.lpf_average_num and len(self.past_inputs) > self.lpf_average_num:
+        if len(self.past_states) > self.LPF_AVERAGE_NUM and len(self.past_inputs) > self.LPF_AVERAGE_NUM:
             a = 0
             b = 0
             p = 0
             y = 0
-            for i in range(self.lpf_average_num):
+            for i in range(self.LPF_AVERAGE_NUM):
                 a += self.past_inputs[-i][0]
                 b += self.past_inputs[-i][1]
                 p += self.past_states[-i][0]
                 y += self.past_states[-i][1]
-            self.input_arm_lpf.append(a / self.lpf_average_num)
-            self.input_base_lpf.append(b / self.lpf_average_num)
-            self.state_pitch_lpf.append(p / self.lpf_average_num)
-            self.state_yaw_lpf.append(y / self.lpf_average_num)
+            self.input_arm_lpf.append(a / self.LPF_AVERAGE_NUM)
+            self.input_base_lpf.append(b / self.LPF_AVERAGE_NUM)
+            self.state_pitch_lpf.append(p / self.LPF_AVERAGE_NUM)
+            self.state_yaw_lpf.append(y / self.LPF_AVERAGE_NUM)
         
         # optimize input
         if len(self.past_states) > self.PAST_STATE_NUM * self.DELTA_STEP:
@@ -562,7 +550,10 @@ class DiaboloSystem():
                 self.simulate_once()
                 f.write('{} {} {} {}\n'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
                           
-    def draw_heatmap(self, wbs):
+    def draw_heatmap(self, model):
+        wb1 = np.c_[model.l1.W.data, model.l1.b.data]
+        wb2 = np.c_[model.l2.W.data, model.l2.b.data]
+        wbs = [wb1, wb2]
         for i in range(len(wbs)):
             wb = wbs[i]
             plt.subplot(len(wbs) ,1 ,i + 1)            
