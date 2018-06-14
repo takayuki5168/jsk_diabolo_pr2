@@ -1,3 +1,8 @@
+#PROBLEM
+sometimes slow send input to PR2
+  -> NO
+  but sometimes arm, base stop and after that, move gakun
+
 # CHECK
 * is it ok to while spinOnce(acutually not use spinOnce), not spin in diabolo_system
     when spin is called

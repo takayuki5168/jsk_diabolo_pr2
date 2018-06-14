@@ -99,14 +99,14 @@ class DiaboloSystem():
         # reference of state
         self.state_ref = [0., 0.]   # FIX
 
-        self.MPC_PREDICT_STEP = 10;
+        self.MPC_PREDICT_STEP = 10
         self.online_training = False
         self.LPF_AVERAGE_NUM = 10
         self.idle_flag = 0
 
         # real data
         self.past_states = []
-        self.past_inputs = []        
+        self.past_inputs = []
         self.now_input = [0.7, 0]
 
         # max min restriction for input
@@ -213,13 +213,20 @@ class DiaboloSystem():
             y.append(self.Y[r])
         return np.array(x), np.array(y)
     
-    def get_test(self):
+    def get_test(self, log_files = None):
         x = []
         y = []
-        s = int(len(self.X) * self.TRAIN_TEST_RATIO)
-        for i in range(len(self.X) - s):
-            x.append(self.X[s + i])
-            y.append(self.Y[s + i])
+        if log_files == None:
+            s = int(len(self.X) * self.TRAIN_TEST_RATIO)
+            for i in range(len(self.X) - s):
+                x.append(self.X[s + i])
+                y.append(self.Y[s + i])
+        else:
+            self.load_data(log_files)
+            self.arrange_data()
+            for i in range(len(self.X)):
+                x.append(self.X[i])
+                y.append(self.Y[i])
         return np.array(x), np.array(y)
 
     # load trained NeuralNetwork model
@@ -264,9 +271,10 @@ class DiaboloSystem():
         self.draw_heatmap(self.model)
             
     def test(self):
+        # x, y = self.get_test(['../log/log-by-logger/log-by-loggerpy_short-string_1.log'])
+        # x, y = self.get_test(['../log/log-by-logger/log-by-loggerpy_diabolo-system_2.log'])
+        # x, y = self.get_test(['../log/log-by-logger/log-by-loggerpy1_6.log'])
         x, y = self.get_test()
-        #x_ = Variable(np.array([x[1990]]).astype(np.float32).reshape(1,6))
-        #t_ = Variable(np.array([y[1990]]).astype(np.float32).reshape(1,2))
         x_ = Variable(x.astype(np.float32).reshape(len(x),6))
         t_ = Variable(y.astype(np.float32).reshape(len(y),2))
         
