@@ -58,7 +58,12 @@
   (if (eq simulate t)
       (setq *tfb* (instance ros::transform-broadcaster :init))
     )
+  (setq *now-loop-time* (/ (send (ros::time-now) :to-nsec) 1000000))
+  
   (do-until-key
+   (print (list (- (/ (send (ros::time-now) :to-nsec) 1000000) *now-loop-time*) "[ms]"))
+   
+   (setq *now-loop-time* (/ (send (ros::time-now) :to-nsec) 1000000))
    (setq *idle-cnt* (+ *idle-cnt* 1))
    
    ;; subscribe
