@@ -11,10 +11,14 @@ sometimes slow send input to PR2
 
 * tune LPF_AVERAGE_NUM, PAST_STATE_NUM
 
+* tune input diff restriction
+
 # TODO
 (* test whether online training work well)
   is it best that delta is 0.01?
     -> Yes
+
+* simulation is a little strange
 
 
 * toss with not set last velocity 0
