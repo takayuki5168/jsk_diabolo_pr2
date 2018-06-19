@@ -88,7 +88,7 @@ class DiaboloSystem():
         self.STATE_DIM = 2
         self.INPUT_DIM = 2
         
-        self.DELTA_STEP = 3   # FIX
+        self.DELTA_STEP = 5   # FIX
 
         # HyperParameters for NeuralNetwork
         self.INPUT_NN_DIM = self.STATE_DIM * self.PAST_STATE_NUM + self.INPUT_DIM * self.PAST_INPUT_NUM
@@ -101,7 +101,7 @@ class DiaboloSystem():
 
         self.MPC_PREDICT_STEP = 10
         self.online_training = False
-        self.LPF_AVERAGE_NUM = 10
+        self.LPF_AVERAGE_NUM = 20
         self.idle_flag = 0
 
         # real data
@@ -291,6 +291,7 @@ class DiaboloSystem():
 
     def realtime_feedback(self, simulate=False, online_training=False):
         self.online_training = online_training
+        self.online_plot = oneline_training and False
         print('[RealtimeFeedback] online training is {}'.format(self.online_training))        
         
         print('[RealtimeFeedback] reference of diabolo state is {}'.format(self.state_ref))
@@ -308,18 +309,19 @@ class DiaboloSystem():
         else:
             # for realtime plot
             if self.online_training == True:
-                plt.ion()
-                plt.figure()
+                if self.online_plot == True:
+                    plt.ion()
+                    plt.figure()
                 
-                plt.title("Loss")
-                self.li, = plt.plot(np.zeros(100), np.zeros(100))
-                plt.xlabel("time[step]")
-                plt.ylabel("loss")
+                    plt.title("Loss")
+                    self.li, = plt.plot(np.zeros(100), np.zeros(100))
+                    plt.xlabel("time[step]")
+                    plt.ylabel("loss")
                 
                 self.online_losses = []
 
                 # make optimizer for online training
-                self.optimizer_online = optimizers.RMSprop(lr=0.0001)
+                self.optimizer_online = optimizers.RMSprop(lr=0.01)
                 self.optimizer_online.setup(self.model)
             
             self.past_states = []
@@ -332,21 +334,26 @@ class DiaboloSystem():
             
             rospy.Subscriber("idle", Float64, self.callback_for_idle, queue_size=1)
             rospy.Subscriber("calc_idle_diabolo_state/diabolo_state", Float64MultiArray, self.callback_for_state, queue_size=1)
-
             r = rospy.Rate(30)
-            #for realtime plot online training loss                            
+            
+            #for realtime plot of online training loss
+            cnt = 0
             while True:
+                cnt += 1
+                if cnt % 100 == 0:
+                    self.save_model()
                 r.sleep()
                 if self.online_training == True:
-                    plot_num = min(100, len(self.online_losses) - 1)
-                    losses = copy.deepcopy(self.online_losses[-plot_num:]) # prevent from not same length between x and y because of async callback
-                    self.li.set_xdata(np.array([i for i in range(len(losses))]))
-                    self.li.set_ydata(losses)
-                    plt.xlim(0, len(losses))
-                    if len(self.online_losses) > 0:
-                        plt.ylim(min(self.online_losses), max(self.online_losses[-int(plot_num / 2.):]) * 2)
-                    plt.draw()
-                    plt.pause(0.001)
+                    if self.online_plot == True:
+                        plot_num = min(100, len(self.online_losses) - 1)
+                        losses = copy.deepcopy(self.online_losses[-plot_num:]) # prevent from not same length between x and y because of async callback
+                        self.li.set_xdata(np.array([i for i in range(len(losses))]))
+                        self.li.set_ydata(losses)
+                        plt.xlim(0, len(losses))
+                        if len(self.online_losses) > 0:
+                            plt.ylim(min(self.online_losses), max(self.online_losses[-int(plot_num / 2.):]) * 2)
+                        plt.draw()
+                        plt.pause(0.001)
             # rospy.spin()
             # callback_for_state is working background
             #   optimize_input
@@ -378,17 +385,19 @@ class DiaboloSystem():
             self.state_yaw_lpf.append(y / self.LPF_AVERAGE_NUM)
         
         # optimize input
+        optimize_input_start_time = time.time()                
         if len(self.past_states) > self.PAST_STATE_NUM * self.DELTA_STEP:
             self.optimize_input()
             print('{} {} {} {}'.format(self.now_input[0], self.now_input[1], self.past_states[-1][0], self.past_states[-1][1]))
             self.publish_input()
+        optimize_input_end_time = time.time()            
 
         # online training
+        train_start_time = time.time()        
         batch_num = 10
         if self.online_training == True:
             if self.idle_flag < 1:
                 return
-            train_start_time = time.time()
             # arrange data for train
             if len(self.input_arm_lpf) < (max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP + batch_num:
                 return
@@ -425,10 +434,10 @@ class DiaboloSystem():
     
             self.online_losses.append(losses / loop_num / batch_num)
                 
-            train_end_time = time.time()
-            print('online training : {}[s]   Is this lower than 0.033?'.format(train_end_time - train_start_time))
-            if 0.33 < train_end_time - train_start_time:
-                print('[Error] time out of online training')
+        train_end_time = time.time()
+        print('optimize input : {}[s], online training : {}[s]   Is this lower than 0.033?'.format(optimize_input_end_time - optimiez_input_start_time, train_end_time - train_start_time))
+        if 0.33 < train_end_time - train_start_time + optimize_input_end_time - optimize_input_start_time:
+            print('[Error] time out of optimize input and online training')
     
     def publish_input(self):
         msg = Float64MultiArray()

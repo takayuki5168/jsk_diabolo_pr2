@@ -9,17 +9,17 @@ sometimes slow send input to PR2
 
 * check online training
 
+* tune LPF_AVERAGE_NUM, PAST_STATE_NUM
+
 # TODO
-* toss with not set last velocity 0
-    
 (* test whether online training work well)
   is it best that delta is 0.01?
+    -> Yes
+
+
+* toss with not set last velocity 0
 
 * predict some steps when realtime mpc
-
-* in get_test(), get data from designated log file
-    then see loss of each all log files one by one
-
 
 * improve calc of pitch, yaw
 
@@ -88,3 +88,6 @@ make video of real robot with rviz
 let hrp2 juggle
 
 in publish_diabolo_model.cpp, subscribe arm EE to visualize string
+
+* in get_test(), get data from designated log file
+    then see loss of each all log files one by one
