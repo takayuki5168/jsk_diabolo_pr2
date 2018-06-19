@@ -322,7 +322,7 @@ class DiaboloSystem():
                 self.online_losses = []
 
                 # make optimizer for online training
-                self.optimizer_online = optimizers.RMSprop(lr=0.01)
+                self.optimizer_online = optimizers.RMSprop(lr=0.001)
                 self.optimizer_online.setup(self.model)
             
             self.past_states = []
@@ -399,6 +399,7 @@ class DiaboloSystem():
         if self.online_training == True:
             if self.idle_flag < 1:
                 return
+            print('Now Online Training')
             # arrange data for train
             if len(self.input_arm_lpf) < (max(self.PAST_STATE_NUM, self.PAST_INPUT_NUM) + 1) * self.DELTA_STEP + batch_num:
                 return
@@ -436,7 +437,7 @@ class DiaboloSystem():
             self.online_losses.append(losses / loop_num / batch_num)
                 
         train_end_time = time.time()
-        print('optimize input : {}[s], online training : {}[s]   Is this lower than 0.033?'.format(optimize_input_end_time - optimiez_input_start_time, train_end_time - train_start_time))
+        print('optimize input : {}[s], online training : {}[s]   Is this lower than 0.033?'.format(optimize_input_end_time - optimize_input_start_time, train_end_time - train_start_time))
         if 0.33 < train_end_time - train_start_time + optimize_input_end_time - optimize_input_start_time:
             print('[Error] time out of optimize input and online training')
     

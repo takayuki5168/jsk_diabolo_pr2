@@ -77,9 +77,9 @@
        (ros::spin-once "diabolo-system-simulate")
      )
 
-   (setq idle-msg (instance std_msgs::float64 :init))   
-   (send idle-msg :data 1)
-   (ros::publish "idle" idle-msg)
+   (setq *idle-msg* (instance std_msgs::float64 :init))   
+   (send *idle-msg* :data 1)
+   (ros::publish "idle" *idle-msg*)
    
    (progn ;; pitch
      ;; P制御
@@ -118,9 +118,11 @@
 	 (setq *idle-control-x-diff* 0)
        )
      (setq *idle-ec* (idle-control *idle-control-x-diff* simulate))     
-     ;;(bench (send *ri* :angle-vector *idle-ec* 1500)) ;;800)
-     (if (eq (mod *idle-cnt* 5) 0)
-	 (bench (progn (publish-left-angle-vector 1500)  (publish-right-angle-vector 1500)))       
+     (if (eq (mod *idle-cnt* 2) 0)
+	 (progn
+	   (bench (progn (publish-left-angle-vector 1500)  (publish-right-angle-vector 1500)))
+	   ;;(bench (send *ri* :angle-vector *idle-ec* 1500)) ;;800)
+	 )
        )
      )
 
@@ -166,7 +168,8 @@
 	     (setq *diff-theta* *idle-diabolo-yaw-rad*)
 	     (bench
 	      (progn
-		(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))
+		;;(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))
+		(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))		
 		(send *ac* :send-goal *goal*)
 		)
 	      )
@@ -191,6 +194,8 @@
 	 )
      )
    )
+  (send *idle-msg* :data 0)
+  (ros::publish "idle" *idle-msg*)
   
   (send *pr2* :rarm :inverse-kinematics *default-right-cube*)  
   (send *pr2* :larm :inverse-kinematics *default-left-cube*)   
