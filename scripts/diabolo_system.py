@@ -560,7 +560,7 @@ class DiaboloSystem():
 
     def simulate_offline(self, simulate_loop_num=1000):
         #init_state = [0., 0.]
-        init_state = [40., -40.]        
+        init_state = [40., 0.]        
         
         self.past_states = [init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]
         with open('../log/diabolo_system/simulate.log', 'w') as f:
