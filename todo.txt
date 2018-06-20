@@ -14,9 +14,7 @@ sometimes slow send input to PR2
 * tune input diff restriction
 
 # TODO
-(* test whether online training work well)
-  is it best that delta is 0.01?
-    -> Yes
+* see graph of optimize input loss
 
 * simulation is a little strange
 
@@ -95,3 +93,8 @@ in publish_diabolo_model.cpp, subscribe arm EE to visualize string
 
 * in get_test(), get data from designated log file
     then see loss of each all log files one by one
+
+* test whether online training work well
+  is it best that delta is 0.01?
+    -> No
+      -> 0.001 is best, rule of thumb
