@@ -147,10 +147,10 @@
 	 (setq *idle-diabolo-yaw* 0))
      
      ;; 最大角度制限
-     (if (> *idle-diabolo-yaw* 20) ;;20)
-	 (setq *idle-diabolo-yaw* 20)) ;;20))
-     (if (< *idle-diabolo-yaw* -20) ;;-20)
-	 (setq *idle-diabolo-yaw* -20)) ;;-20))
+     (if (> *idle-diabolo-yaw* 25) ;;20)
+	 (setq *idle-diabolo-yaw* 25)) ;;20))
+     (if (< *idle-diabolo-yaw* -25) ;;-20)
+	 (setq *idle-diabolo-yaw* -25)) ;;-20))
      
      (setq *radius* 0.7) ;;(/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m] ;; TODO
      (setq *radius* (* *radius* 0.8)) ;; TODO
