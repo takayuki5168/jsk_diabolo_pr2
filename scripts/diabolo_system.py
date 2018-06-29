@@ -262,7 +262,7 @@ class DiaboloSystem():
         # plot loss
         print('[Train] loss is {}'.format(losses[-1]))
         plt.title('Loss')
-        plt.xlabel('time[step]')
+        plt.xlabel('iteration')
         plt.ylabel('loss')                
         plt.plot(losses)
         plt.yscale('log')

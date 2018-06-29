@@ -7,6 +7,8 @@
 ;;   python state-input-logger.py   ;; logger of state(pitch, yaw) and input(arm, base)
 
 ;; when record rosbag
+;; rosbag record -O diabolo.bag /calc_idle_diabolo_state/marker_state /calc_idle_diabolo_state/marker_mid  /calc_idle_diabolo_state/marker_cube /calc_idle_diabolo_state/diabolo_points /calc_idle_diabolo_state/diabolo_state /base_odometry/odom /tf
+
 ;;   rosbag record -O diabolo.bag  /calc_idle_diabolo_state/diabolo_points /calc_idle_diabolo_state/diabolo_state /calc_idle_diabolo_state/pitch_points /calc_idle_diabolo_state/marker_cube /calc_idle_diabolo_state/marker_mid /calc_idle_diabolo_state/marker_state /tf
 ;; when play rosbag
 ;;   rosbag play diabolo.bag
