@@ -65,6 +65,11 @@ class MyChain(Chain):
     # loss func for learning
     def loss(self, t):
         return F.mean_squared_error(self.res, t)
+
+    def loss_pitch(self, t):
+        return abs(self.res[0][0] - t[0][0])
+    def loss_yaw(self, t):
+        return abs(self.res[0][1] - t[0][1])
     
     # loss for optimize input
     def loss_for_optimize_input(self, t):
@@ -111,8 +116,8 @@ class DiaboloSystem():
 
         # max min restriction for input
         # self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.01]
-        # self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.05]
-        self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.01] #TODOTODOTODO
+        self.MAX_INPUT_DIFF_RESTRICTION = [0.1, 0.1]
+        #self.MAX_INPUT_DIFF_RESTRICTION = [0.03, 0.01] #TODOTODOTODO
         self.MAX_INPUT_RESTRICTION = [0.85, 0.34]   # TODO
         self.MIN_INPUT_RESTRICTION = [0.60, -0.34]   # TODO        
 
@@ -243,9 +248,14 @@ class DiaboloSystem():
         
     def train(self, loop_num=1000):
         # train loop_num
-        losses =[]        
+        losses = [[], []]
+        losses_test = [[], []]
+        losses_pre = []
+        losses_test_pre = []        
         for i in range(loop_num):
             self.percentage(i, loop_num)
+
+            # train
             x, y = self.get_batch_train(self.BATCH_SIZE)
         
             x_ = Variable(x.astype(np.float32).reshape(self.BATCH_SIZE, 6))
@@ -253,18 +263,71 @@ class DiaboloSystem():
 
             self.model.zerograds()
             self.model(x_)
+
+            loss_pitch = 0
+            for i in range(len(t_)):
+                loss_pitch += (t_[i][0].data - self.model.res[i][0].data)**2 #self.model.loss_pitch(t_)
+            loss_pitch /= len(t_)
+            loss_yaw = 0
+            for i in range(len(t_)):
+                loss_yaw += (t_[i][1].data - self.model.res[i][1].data)**2 #self.model.loss_yaw(t_)
+            loss_yaw /= len(t_)                
+            losses[0].append(loss_pitch)
+            losses[1].append(loss_yaw)
+
             loss = self.model.loss(t_)
+            losses_pre.append(loss.data)
 
             loss.backward()
             self.optimizer.update()
-            losses.append(loss.data)
+
+            # test
+            x_test, y_test = self.get_test()
+        
+            x_test_ = Variable(x_test.astype(np.float32).reshape(len(x_test), 6))
+            t_test_ = Variable(y_test.astype(np.float32).reshape(len(y_test), 2))
+
+            self.model.zerograds()
+            self.model(x_test_)
+
+            loss_test = self.model.loss(t_test_)            
+            losses_test_pre.append(loss_test.data)
+            
+            loss_test_pitch = 0
+            for i in range(len(t_test_)):
+                loss_test_pitch += (t_test_[i][0].data - self.model.res[i][0].data)**2 #self.model.loss_pitch(t_test_)
+            loss_test_pitch /= len(t_test_)
+            loss_test_yaw = 0
+            for i in range(len(t_test_)):
+                loss_test_yaw += (t_test_[i][1].data - self.model.res[i][1].data)**2 #self.model.loss_yaw(t_test_)
+            loss_test_yaw /= len(t_test_)
+
+            losses_test[0].append(loss_test_pitch)
+            losses_test[1].append(loss_test_yaw)                        
 
         # plot loss
-        print('[Train] loss is {}'.format(losses[-1]))
-        plt.title('Loss')
+        idx = 0
+        print('[Train] loss is {}'.format(losses[idx][-1]))
+        
+        fig = plt.figure()
+        fig.patch.set_facecolor('white')
+        
+        plt.title('Loss of Pitch & Yaw')
         plt.xlabel('iteration')
-        plt.ylabel('loss')                
-        plt.plot(losses)
+        plt.ylabel('degree^2')
+        
+        #plt.plot([losses[0][i] + losses[1][i] for i in range(len(losses[0]))], label="train loss", linewidth=2)
+        #plt.plot(losses_pre, label="train loss", linewidth=2)        
+        #plt.plot([losses_test[0][i] + losses_test[1][i] for i in range(len(losses_test[0]))], label="validation loss", linewidth=2)        
+        #plt.plot(losses[1], label="train loss", linewidth=2)
+        #plt.plot(losses_test[idx], label="validation loss", linewidth=2)
+        
+        plt.plot(losses[0], label="train loss of Pitch", linewidth=2)
+        plt.plot(losses_test[0], label="validation loss of Pitch", linewidth=2)
+        plt.plot(losses[1], label="train loss of Yaw", linewidth=2)
+        plt.plot(losses_test[1], label="validation loss of Yaw", linewidth=2)
+        
+        plt.legend()
         plt.yscale('log')
         plt.show()
 
@@ -517,15 +580,27 @@ class DiaboloSystem():
         x = Variable(np.array([self.past_states[-1 * self.DELTA_STEP], self.past_states[-2 * self.DELTA_STEP], self.now_input]).astype(np.float32).reshape(1,6)) # TODO random value is past state
         t = Variable(np.array(self.state_ref).astype(np.float32).reshape(1,2))
         loop_flag = True
+        print "po"
         for i in range(20):    # optimize loop  loop_num is 10 == hz is 90
             self.model.zerograds()            
             self.model(x)
             # loss = self.model.loss(t)
+
+            loss_pitch = 0
+            for i in range(len(t)):
+                loss_pitch += (t[i][0].data - self.model.res[i][0].data)**2
+            loss_pitch /= len(t)
+            loss_yaw = 0
+            for i in range(len(t)):
+                loss_yaw += (t[i][1].data - self.model.res[i][1].data)**2 #self.model.loss_yaw(t_test_)
+            loss_yaw /= len(t)
+ 
             loss = self.model.loss_for_optimize_input(t)
             loss.backward()
             
-            x = Variable((x - 0.01 * x.grad_var).data)
+            x = Variable((x - 0.0005 * x.grad_var).data)
             now_input = [x[0][4].data, x[0][5].data]
+            print now_input[0], now_input[1], loss_pitch, loss_yaw
             # apply input restriction
             for j in range(self.PAST_INPUT_NUM * self.INPUT_DIM):
                 # diff input restriction
@@ -561,7 +636,7 @@ class DiaboloSystem():
 
     def simulate_offline(self, simulate_loop_num=1000):
         #init_state = [0., 0.]
-        init_state = [40., 0.]        
+        init_state = [20., -20.]        
         
         self.past_states = [init_state for i in range(self.PAST_STATE_NUM * self.DELTA_STEP)]
         with open('../log/diabolo_system/simulate.log', 'w') as f:
@@ -605,7 +680,7 @@ if __name__ == '__main__':
         ds.arrange_data()
         ds.make_model()
         print('[Train] start')        
-        ds.train(loop_num=500)
+        ds.train(loop_num=100)
         ds.save_model()
     else:
         ds.load_data(LOG_FILES)

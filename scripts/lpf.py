@@ -8,7 +8,7 @@ import sys
 if len(sys.argv) == 2:
     log_file = sys.argv[-1]
 else:
-    log_file = "../log/stable_pitch_plus.log"
+    log_file = "../log/po.log"
     
 pitch = []
 yaw = []    
@@ -31,18 +31,24 @@ for i in range(len(lpf_average_nums)):
         lpf_pitch[i].append(p / lpf_average_nums[i])
         lpf_yaw[i].append(y / lpf_average_nums[i])
 
-plt.figure()
+fig = plt.figure()
+fig.patch.set_facecolor('white')
+plt.subplots_adjust(wspace=0.4, hspace=0.6)
 
 plt.subplot(2,1,1)
 plt.title("Pitch")
-plt.plot(np.array([i for i in range(len(lpf_pitch[0]))]), np.array(lpf_pitch[0]))
-plt.plot(np.array([i for i in range(len(lpf_pitch[1]))]), np.array(lpf_pitch[1]))
-plt.plot(np.array([i for i in range(len(lpf_pitch[2]))]), np.array(lpf_pitch[2]))
+plt.xlabel('step')
+plt.ylabel('degree')
+plt.plot(np.array([i for i in range(len(lpf_pitch[0]))]), np.array(lpf_pitch[0]), label="raw Pitch", linewidth=1)
+plt.plot(np.array([i for i in range(len(lpf_pitch[3]))]), np.array(lpf_pitch[3]), label="smoothed Pitch", linewidth=1)
+plt.legend()
 
 plt.subplot(2,1,2)
 plt.title("Yaw")
-plt.plot(np.array([i for i in range(len(lpf_yaw[0]))]), np.array(lpf_yaw[0]))
-plt.plot(np.array([i for i in range(len(lpf_yaw[1]))]), np.array(lpf_yaw[1]))
-plt.plot(np.array([i for i in range(len(lpf_yaw[2]))]), np.array(lpf_yaw[2]))
+plt.xlabel('step')
+plt.ylabel('degree')
+plt.plot(np.array([i for i in range(len(lpf_yaw[0]))]), np.array(lpf_yaw[0]), label="raw Yaw", linewidth=1)
+plt.plot(np.array([i for i in range(len(lpf_yaw[3]))]), np.array(lpf_yaw[3]), label="smoothed Yaw", linewidth=1)
+plt.legend()
 
 plt.show()
