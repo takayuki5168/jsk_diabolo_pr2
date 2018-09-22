@@ -1,0 +1,3 @@
+apps:
+- app: jsk_diabolo_pr2/diabolo
+  display: diabolo

@@ -1,5 +1,7 @@
 <launch>
-  <include file="$(find jsk_diabolo_pr2)/launch/idle_diabolo.launch"/>
+  <include file="$(find jsk_diabolo_pr2)/launch/idle_diabolo.launch">
+    <arg name="relay_kinect" default="false"/>
+  </include>
   <node name="diabolo_euslisp_idle" pkg="roseus" type="roseus"
         args="$(find jsk_diabolo_pr2)/euslisp/idle.l"
         required="true">
