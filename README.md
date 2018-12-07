@@ -1,3 +1,6 @@
+# PR2, stabling Diablo horizontal with NeuralNetwork Controller
+![video](https://github.com/takayuki5168/jsk_diabolo_pr2/blob/master/gif/pr2-diabolo.gif)
+
 # In Real
 ## idle with original controller
 ```sh
