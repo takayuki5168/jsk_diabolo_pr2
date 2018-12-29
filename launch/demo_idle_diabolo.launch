@@ -1,7 +1,13 @@
 <launch>
+  <arg name="demo" default="true"/>
+  <arg name="trigger" default="false"/>
+  
   <include file="$(find jsk_diabolo_pr2)/launch/idle_diabolo.launch"/>
+  
   <node name="diabolo_euslisp_idle" pkg="roseus" type="roseus"
         args="$(find jsk_diabolo_pr2)/euslisp/idle.l"
         required="true">
+    <param name="demo" value="$(arg demo)"/>
+    <param name="trigger" value="$(arg trigger)"/>
   </node>
 </launch>
