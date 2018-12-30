@@ -10,10 +10,10 @@
       (ros::subscribe "diabolo_demo/trigger" std_msgs::Bool
 		      #'(lambda (msg) (progn
 					;; move y
-					(send *ri* :go-pos 0 -1 0)
+					(send *ri* :go-pos-unsafe 0 -1 0)
 
 					;; move theta
-					(send *ri* :go-pos 0 0 -90)
+					(send *ri* :go-pos-unsafe 0 0 -90)
 					
           ;; sleep
           (unix::sleep 3)
