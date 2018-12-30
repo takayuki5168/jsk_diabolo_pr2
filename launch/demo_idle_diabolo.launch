@@ -1,6 +1,6 @@
 <launch>
-  <arg name="demo" default="true"/>
-  <arg name="trigger" default="false"/>
+  <arg name="demo" default="false"/>
+  <arg name="trigger" default="true"/>
   
   <include file="$(find jsk_diabolo_pr2)/launch/idle_diabolo.launch"/>
   
