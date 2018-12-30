@@ -1,6 +1,7 @@
 (setq *demo* (ros::get-param "/diabolo_euslisp_idle/demo"))
 (setq *trigger* (ros::get-param "/diabolo_euslisp_idle/trigger"))
 
+;; init
 (load "juggle.l")
 (init)
 
@@ -9,6 +10,9 @@
     (progn
       (ros::subscribe "diabolo_demo/trigger" std_msgs::Bool
 		      #'(lambda (msg) (progn
+          ;; solve IK
+          (solve-ik)
+
 					;; move y
 					(send *ri* :go-pos-unsafe 0 -1 0)
 

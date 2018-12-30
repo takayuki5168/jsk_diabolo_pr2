@@ -1,23 +1,3 @@
-;; idle_diabolo.launch   ;;idle用launchファイル群
-;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
-;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;   rosrun pr2_juggle calc_idle_diabolo_state   ;;ディアボロの傾きを計算
-
-;; toss_diabolo.launch   ;;toss用launchファイル群
-;;   roslaunch relay_kinect.launch   ;;30FPS出るpointsをpublish
-;;   rosrun jsk_pcl_ros tf_transform_cloud ~input:=/kinect_head_remote/depth_registered/points _target_frame_id:=base_footprint   ;;Kinectの座標を変換して/tf_transform_cloud/outputにpublish
-;;   rosrun pr2_juggle calc_toss_diabolo_pos   ;;ディアボロの座標を計算
-
-;; python state-input-logger.py   ;;システム同定のためのロガー
-
-;; rosbag record -O diabolo0.bag  /diabolo_marker/diabolo_marker /diabolo_marker/diabolo_cube_marker /calc_idle_diabolo_state/points /calc_idle_diabolo_state/pitch_points /tf   ;;rosbag を取る
-
-;;  TODO
-;;    :angle-vectorが遅い
-;;      topicに直接publishする
-;;    falling diaboloの予測
-;;    toss
-
 (defun init ()
   (setq *idle-diabolo-pitch* 0)
   (setq *idle-diabolo-yaw* 0)
@@ -71,19 +51,16 @@
   (load "package://pr2eus/pr2-interface.l")
   (pr2-init)
   
-  (send *ri* :angle-vector (send *pr2* :reset-pose) 5000)
+  ;;(send *ri* :angle-vector (send *pr2* :reset-pose) 5000)
   (setq *ac* (pr2-interface-move-base-trajectory-action *ri*))
   
   (send *ri* :start-grasp)
   (send *pr2* :head-neck-p :joint-angle 50)
-
-  (solve-ik)
-  
-  (objects (list *pr2*))
   )
 
 (defun solve-ik ()
-  (send *pr2* :reset-pose)
+  ;;(send *pr2* :reset-pose)
+  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (send *pr2* :start-grasp)  
   (send *pr2* :head-neck-p :joint-angle 50)
   
@@ -95,6 +72,7 @@
     (setq *default-pos* (send *pr2* :angle-vector))
     )
 
+  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (progn  ;; idle
     (setq *idle-right-up-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 1150)))
     (send *pr2* :rarm :inverse-kinematics *idle-right-up-cube*)  
@@ -109,6 +87,7 @@
     (setq *idle-2-pos* (send *pr2* :angle-vector))
     )
   
+  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (progn ;; roll
     (setq *roll-1-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -50 1050)))
     (send *pr2* :rarm :inverse-kinematics *roll-1-right-cube*)
@@ -135,7 +114,7 @@
     (setq *roll-4-pos* (send *pr2* :angle-vector))
     )
 
-  (setq *solve-toss-ik* t)
+  (setq *solve-toss-ik* nil)
   (when (eq *solve-toss-ik* t)
     (progn ;; toss CAUTION for purple stick
       (send *pr2* :angle-vector #f(50.0 16.191 44.0774 31.227 -101.578 295.967 -52.3229 -46.5188 -16.6466 44.8379 -31.9883 -101.951 -272.998 -97.2327 394.953 0.0 5.0))
@@ -272,6 +251,7 @@
   (send *default-right-diff-cube* :rotate 0.2 :x)
   (send *default-left-diff-cube* :rotate -0.2 :x)  
   
+  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (send *pr2* :rarm :inverse-kinematics *default-right-diff-cube*)
   (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
   )
