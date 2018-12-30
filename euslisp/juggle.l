@@ -61,6 +61,7 @@
 (defun solve-ik ()
   ;;(send *pr2* :reset-pose)
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+  (send *pr2* :head-neck-p :joint-angle 50)  
   (send *pr2* :start-grasp)  
   (send *pr2* :head-neck-p :joint-angle 50)
   
@@ -73,6 +74,7 @@
     )
 
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+  (send *pr2* :head-neck-p :joint-angle 50)  
   (progn  ;; idle
     (setq *idle-right-up-cube* (make-cube 100 100 100 :pos (float-vector 700 -150 1150)))
     (send *pr2* :rarm :inverse-kinematics *idle-right-up-cube*)  
@@ -88,6 +90,7 @@
     )
   
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+  (send *pr2* :head-neck-p :joint-angle 50)  
   (progn ;; roll
     (setq *roll-1-right-cube* (make-cube 100 100 100 :pos (float-vector 700 -50 1050)))
     (send *pr2* :rarm :inverse-kinematics *roll-1-right-cube*)
@@ -252,6 +255,7 @@
   (send *default-left-diff-cube* :rotate -0.2 :x)  
   
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+  (send *pr2* :head-neck-p :joint-angle 50)  
   (send *pr2* :rarm :inverse-kinematics *default-right-diff-cube*)
   (send *pr2* :larm :inverse-kinematics *default-left-diff-cube*)
   )
