@@ -1,5 +1,5 @@
 ;; FIX
-(setq *demo* t)
+(setq *demo* nil)
 
 (load "juggle.l")
 (init)

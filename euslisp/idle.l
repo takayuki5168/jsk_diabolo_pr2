@@ -120,8 +120,8 @@
      (setq *idle-ec* (idle-control *idle-control-x-diff* simulate))     
      (if (eq (mod *idle-cnt* 2) 0)
 	 (progn
-	   (bench (progn (publish-left-angle-vector 1500)  (publish-right-angle-vector 1500)))
-	   ;;(bench (send *ri* :angle-vector *idle-ec* 1500)) ;;800)
+	   ;;(bench (progn (publish-left-angle-vector 1500)  (publish-right-angle-vector 1500)))
+	   (bench (send *ri* :angle-vector *idle-ec* 1500)) ;;800)
 	 )
        )
      )
@@ -147,10 +147,10 @@
 	 (setq *idle-diabolo-yaw* 0))
      
      ;; 最大角度制限
-     (if (> *idle-diabolo-yaw* 25) ;;20)
-	 (setq *idle-diabolo-yaw* 25)) ;;20))
-     (if (< *idle-diabolo-yaw* -25) ;;-20)
-	 (setq *idle-diabolo-yaw* -25)) ;;-20))
+     (if (> *idle-diabolo-yaw* 20) ;;20)
+	 (setq *idle-diabolo-yaw* 20)) ;;20))
+     (if (< *idle-diabolo-yaw* -20) ;;-20)
+	 (setq *idle-diabolo-yaw* -20)) ;;-20))
      
      (setq *radius* 0.7) ;;(/ (elt (send (send *pr2* :rarm :end-coords) :worldpos) 0) 1000)) ;; [m] ;; TODO
      (setq *radius* (* *radius* 0.8)) ;; TODO
@@ -168,8 +168,7 @@
 	     (setq *diff-theta* *idle-diabolo-yaw-rad*)
 	     (bench
 	      (progn
-		;;(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))
-		(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 10000))		
+		(setq *goal* (send *ri* :move-trajectory *diff-x* *diff-y* *diff-theta* 1000))   ;; 10000))
 		(send *ac* :send-goal *goal*)
 		)
 	      )
