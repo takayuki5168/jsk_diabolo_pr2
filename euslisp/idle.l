@@ -1,10 +1,31 @@
-(setq *demo* (ros::get-param "/diabolo_euslisp_idle/demo"))
-(setq *trigger* (ros::get-param "/diabolo_euslisp_idle/trigger"))
+;;(setq *demo* (ros::get-param "/diabolo_euslisp_idle/demo"))
+;;(setq *trigger* (ros::get-param "/diabolo_euslisp_idle/trigger"))
 
 ;; init
 (load "juggle.l")
 (init)
 
+(do-until-key)
+
+;; solve IK
+(solve-ik)
+
+;; move y
+(send *ri* :go-pos-unsafe 0 1 0)
+
+;; move x
+(send *ri* :go-pos-unsafe 1 0 0)
+	  
+;; move theta
+(send *ri* :go-pos-unsafe 0 0 90)
+					
+;; sleep
+(unix::sleep 5)
+
+;; diabolo
+(idle t t t)
+
+#|
 (if (eq *trigger* t)
     ;; when trigger is needed
     (progn
@@ -12,19 +33,19 @@
 		      #'(lambda (msg) (progn
           ;; solve IK
           (solve-ik)
-
-					;; move y
-					(send *ri* :go-pos-unsafe 0 -1 0)
-
-					;; move theta
-					(send *ri* :go-pos-unsafe 0 0 -90)
+	  
+	  ;; move y
+	  (send *ri* :go-pos-unsafe 0 -1 0)
+	  
+	  ;; move theta
+	  (send *ri* :go-pos-unsafe 0 0 -90)
 					
           ;; sleep
           (unix::sleep 3)
 
-					;; diabolo
-					(idle t t t)
-					)))
+	  ;; diabolo
+	  (idle t t t)
+	  )))
       (do-until-key
        (ros::spin-once)
        )
@@ -83,3 +104,4 @@
     (idle t t t)      
     )
   )
+|#
