@@ -16,7 +16,7 @@
     (send (send i :time_from_start) :nsec (- *idle-angle-vector-time* (* (/ *idle-angle-vector-time* 1000) 1000)))
     (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :sec *ros-time-sec*)
     (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :nsec *ros-time-nsec*)
-    (send *idle-angle-vector-msg* :goal :trajectory :points (list i)) ;; TODO
+    (send *idle-angle-vector-msg* :goal :trajectory :points (list i))
     )
 
   (send *idle-angle-vector-msg* :header :seq 1)
@@ -49,7 +49,7 @@
     (send (send i :time_from_start) :nsec (- *idle-angle-vector-time* (* (/ *idle-angle-vector-time* 1000) 1000)))
     (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :sec *ros-time-sec*)
     (send (send (send (send *idle-angle-vector-msg* :goal :trajectory) :header) :stamp) :nsec *ros-time-nsec*)
-    (send *idle-angle-vector-msg* :goal :trajectory :points (list i)) ;; TODO
+    (send *idle-angle-vector-msg* :goal :trajectory :points (list i))
     )
 
   (send *idle-angle-vector-msg* :header :seq 1)

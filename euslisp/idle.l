@@ -17,8 +17,8 @@
     (setq *right-z-diff* 0)
     )
   
-  (setq *default-right-diff-cube* (send (send *default-right-cube* :copy-coords) :translate (float-vector right-x-diff 0 *right-z-diff*))) ;; TODO y-diff
-  (setq *default-left-diff-cube* (send (send *default-left-cube* :copy-coords) :translate (float-vector (- right-x-diff) 0 (- *right-z-diff*)))) ;; TODO y-diff
+  (setq *default-right-diff-cube* (send (send *default-right-cube* :copy-coords) :translate (float-vector right-x-diff 0 *right-z-diff*)))
+  (setq *default-left-diff-cube* (send (send *default-left-cube* :copy-coords) :translate (float-vector (- right-x-diff) 0 (- *right-z-diff*))))
 
   (send *default-right-diff-cube* :rotate 0.2 :x)
   (send *default-left-diff-cube* :rotate -0.2 :x)  
@@ -46,7 +46,7 @@
     )
   
   (setq *idle-control-x-diff* 0)
-  (setq *max-x-diff* 100) ;; TODO  
+  (setq *max-x-diff* 100)
   (setq *min-x-diff* 0)
   (setq *now-time* (/ (send (ros::time-now) :to-nsec) 1000000))
   (setq *right-z-diff* 150)
@@ -96,7 +96,7 @@
 	       ;;(print *idle-control-x-diff*)
 	       )
 	   (progn
-	     (setq *idle-control-x-diff* (* *idle-diabolo-pitch* 10)) ;; when controller TODO params
+	     (setq *idle-control-x-diff* (* *idle-diabolo-pitch* 10))
 	     )
 	   )
 	 )
